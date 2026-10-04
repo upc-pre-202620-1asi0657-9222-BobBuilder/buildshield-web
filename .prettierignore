@@ -1,0 +1,6 @@
+dist/
+coverage/
+node_modules/
+.angular/
+package-lock.json
+CLAUDE.md
