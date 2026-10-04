@@ -1,27 +1,23 @@
-# BuildshieldWeb
+# buildshield-web
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.21.
+Aplicación web de BuildShield en Angular 18 + TypeScript. Consume la API `/api/v1` de buildshield-core y buildshield-reception.
 
-## Development server
+## Requisitos
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+- Node.js 22 (o 20 / 18.19+)
+- Google Chrome (para las pruebas unitarias)
 
-## Code scaffolding
+## Comandos
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+| Comando                                   | Descripción                                       |
+| ----------------------------------------- | ------------------------------------------------- |
+| `npm start`                               | Servidor de desarrollo en http://localhost:4200   |
+| `npm run build`                           | Compilación de producción en `dist/`              |
+| `npm test`                                | Pruebas unitarias (Karma + Jasmine) en modo watch |
+| `npm run test:ci`                         | Pruebas unitarias una vez, con Chrome headless    |
+| `npm run lint`                            | ESLint (angular-eslint)                           |
+| `npm run format` / `npm run format:check` | Formatear / verificar formato con Prettier        |
 
-## Build
+## Ramas
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+GitFlow: `main`, `develop`, `feature/*`, `release/*`, `hotfix/*`. Commits con Conventional Commits.
