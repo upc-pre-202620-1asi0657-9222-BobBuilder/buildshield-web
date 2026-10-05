@@ -1,6 +1,6 @@
 # buildshield-web
 
-Aplicación web de BuildShield en Angular 18 + TypeScript. Consume la API `/api/v1` de buildshield-core y buildshield-reception.
+Aplicación web de BuildShield en Angular 18 + TypeScript. Consume la API `/api/v1` de buildshield-core (monolito modular).
 
 ## Requisitos
 
