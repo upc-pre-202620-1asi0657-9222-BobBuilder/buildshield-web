@@ -54,11 +54,11 @@ $env:CHROME_BIN = "C:/Program Files/Google/Chrome/Application/chrome.exe"   # Po
 | `requestTimeoutMs` | 15000 | 15000 | Tiempo máximo por intento. |
 | `maxNetworkRetries` | 3 | 3 | Reintentos ante fallas de red o tiempo agotado. |
 | `retryBaseDelayMs` | 500 | 500 | Espera exponencial: 500, 1000 y 2000 ms. |
-| `mockSprint2` | `true` | `false` | Simula en el navegador los endpoints de despachos y recepciones del Sprint 2. |
+| `mockSprint2` | `false` | `false` | Si se pone en `true`, simula en el navegador los endpoints de despachos y recepciones (demos sin backend). |
 
 ### Modo simulado del Sprint 2
 
-Mientras `buildshield-core` no publique `/dispatches` y `/receptions`, `mockSprint2: true` cambia la implementación de `LogisticsApi` por `MockLogisticsApi`: guarda despachos y recepciones en `localStorage` (`buildshield.mock.logistics`), siembra un despacho de demostración en tránsito y dibuja un QR de muestra (no escaneable) para el manifiesto. Los pedidos, el catálogo y la sesión siempre van al backend real. La interfaz muestra un aviso amarillo mientras el modo está activo. Para usar el backend real basta con poner `mockSprint2: false`.
+Por defecto la app usa `buildshield-core` 1.1.0 (rama `feature/sprint-2-dispatch-reception`), que ya publica `/dispatches` y `/receptions`. Con `mockSprint2: true` la implementación de `LogisticsApi` pasa a `MockLogisticsApi`, con las mismas formas de respuesta: guarda despachos y recepciones en `localStorage` (`buildshield.mock.logistics`), siembra un despacho de demostración en tránsito y dibuja un QR de muestra que no se puede escanear. Los pedidos, el catálogo y la sesión siempre van al backend real. Mientras el modo está activo, la interfaz muestra un aviso amarillo.
 
 ## Pantallas y tareas del sprint
 
@@ -84,7 +84,7 @@ Flujo estándar en 2 interacciones (el límite es 5): tocar el despacho en trán
 
 - `AuthService`: sesión en señales y `localStorage`, rol leído del JWT (`role`, `org`, `sub`), renovación con rotación del token y una sola petición de renovación compartida entre llamadas simultáneas.
 - Interceptores, en este orden:
-  1. `idempotencyInterceptor`: agrega `Idempotency-Key` UUID a `POST /stock/entries`, `/orders`, `/orders/{id}/approve`, `/orders/{id}/reject`, `/dispatches/{id}/depart` y `/receptions/{id}/confirm`. Respeta la clave si la petición ya trae una (las pantallas reusan la suya cuando el usuario reintenta la misma operación).
+  1. `idempotencyInterceptor`: agrega `Idempotency-Key` UUID a `POST /stock/entries`, `/orders`, `/orders/{id}/approve`, `/orders/{id}/reject`, `/dispatches`, `/dispatches/{id}/depart` y `/receptions/{id}/confirm`. Respeta la clave si la petición ya trae una: las pantallas reusan la suya cuando el usuario reintenta tras una falla de red o del servidor, y generan otra después de un rechazo de negocio (4xx), porque el backend repetiría la respuesta guardada.
   2. `errorInterceptor`: convierte toda falla en `ApiError` con mensaje en español (por código del backend, por mensaje del backend o por estado HTTP).
   3. `authInterceptor`: agrega `Authorization: Bearer`, renueva antes de que venza el token y, ante 401, renueva una vez y repite; si falla, cierra la sesión y lleva a `/sign-in`.
   4. `retryInterceptor`: tiempo máximo por intento y hasta 3 reintentos con espera exponencial ante fallas de red, solo en peticiones idempotentes (GET, PUT, DELETE o POST con `Idempotency-Key`). Como va después del de idempotencia, cada reintento reenvía la misma clave.
@@ -118,7 +118,18 @@ src/
 - GitFlow: `main`, `develop`, `feature/<nombre>`, `release/<versión>`, `hotfix/<nombre>`.
 - Conventional Commits con scope en inglés, por ejemplo `feat(auth): add sign-in page`.
 
+### Detalles del contrato con buildshield-core 1.1.0
+
+- Estados del despacho: `PREPARED`, `IN_TRANSIT`, `RECEIVED` (y `CANCELLED`, reservado). Las líneas del pedido traen `lines[].id`, que se usa como `orderLineId`.
+- Aprobar un pedido reserva stock: si no alcanza, el backend responde 409 `INSUFFICIENT_STOCK` y la pantalla pide registrar una entrada de stock.
+- Abrir una recepción que ya existe responde 409 `RECEPTION_ALREADY_EXISTS` con el id en `details`; la app abre la existente con `GET /receptions/{id}`.
+- Las líneas de la recepción se guardan de a una: el backend bloquea la recepción completa en cada cambio, y dos `PUT` simultáneos responden 409 `CONCURRENT_MODIFICATION`. Ante ese 409 la app reintenta hasta 2 veces.
+- Los nombres, SKU y unidades de la recepción vienen del cotejo (`/comparison`); los del despacho, del catálogo de materiales.
+
 ## Pendientes conocidos
 
-- El `OrderResource` de `buildshield-core` 1.0.0 no expone el id de cada línea; el despacho usa `line.id` si llega y, si no, el `materialId` como `orderLineId`.
 - `PlaceOrderRequest` del backend aún no tiene `requiredDate`: se envía el campo y además se anota en `notes`.
+
+## Verificación de punta a punta
+
+El 6 de octubre de 2026 se hizo el recorrido completo con Playwright (Chrome headless) contra `buildshield-core` 1.1.0-SNAPSHOT y PostgreSQL local, sin errores de API: registro, encargados, obra, almacén, materiales, asignaciones, stock, pedido, aprobación, despacho, transportista, pesaje, salida, manifiesto, y recepción en móvil (390x844) con una línea fuera de tolerancia y la conformidad.

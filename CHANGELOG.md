@@ -2,6 +2,21 @@
 
 Formato basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y versionado semántico.
 
+## [Sin publicar]
+
+### Cambiado
+
+- Despachos y recepciones alineados al contrato real de `buildshield-core` 1.1.0: estado `PREPARED`, `manifestCode`, transportista `{name, document, plate}`, manifiesto con `order`, `worksite` y `warehouse`, cotejo como objeto con `lines` y `tolerancePercent`.
+- `POST /dispatches` lleva `Idempotency-Key`. Después de un rechazo de negocio (4xx), las pantallas generan una clave nueva.
+- `mockSprint2` queda apagado en desarrollo; la simulación sigue disponible.
+
+### Corregido
+
+- El alta de almacén envía el `type` obligatorio.
+- La recepción guarda las líneas en cola, de a una, para evitar el 409 `CONCURRENT_MODIFICATION`, y reintenta si lo recibe.
+- Abrir una recepción existente (409 `RECEPTION_ALREADY_EXISTS`) carga la recepción existente.
+- `INSUFFICIENT_STOCK` al aprobar muestra qué hacer.
+
 ## [0.1.0] - 2026-10-06
 
 ### Agregado
