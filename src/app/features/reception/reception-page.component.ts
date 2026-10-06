@@ -1,9 +1,9 @@
 import {Component, DestroyRef, OnInit, computed, inject, input, signal} from '@angular/core';
 import {RouterLink} from '@angular/router';
-import {Subscription} from 'rxjs';
+import {Subscription, retry, throwError, timer} from 'rxjs';
 
 import {LogisticsApi, computeShrinkage} from '../../core/api/logistics-api';
-import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
+import {ApiError, shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {ComparisonRow, Reception} from '../../core/models/logistics';
 import {generateUuid} from '../../core/util/uuid';
 import {ReceptionComparisonComponent} from './reception-comparison.component';
@@ -41,7 +41,8 @@ export class ReceptionPageComponent implements OnInit {
   protected readonly reception = signal<Reception | null>(null);
   private readonly comparison = signal<ComparisonRow[]>([]);
   private readonly local = signal<Record<string, LocalLine>>({});
-  private readonly inFlight = new Map<string, Subscription>();
+  private readonly queue: Array<{lineId: string; receivedQty: number}> = [];
+  private current: Subscription | null = null;
   private comparisonSub: Subscription | null = null;
 
   protected readonly error = signal<string | null>(null);
@@ -103,7 +104,7 @@ export class ReceptionPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.destroyRef.onDestroy(() => {
-      this.inFlight.forEach((sub) => sub.unsubscribe());
+      this.current?.unsubscribe();
       this.comparisonSub?.unsubscribe();
     });
     this.logistics.openReception(this.dispatchId()).subscribe({
@@ -165,30 +166,65 @@ export class ReceptionPageComponent implements OnInit {
     }
   }
 
+  /**
+   * Encola el guardado de una línea. Los PUT se envían de a uno: el backend
+   * bloquea la recepción completa en cada cambio y dos PUT simultáneos de
+   * líneas distintas chocan con 409 CONCURRENT_MODIFICATION.
+   */
   private saveLine(lineId: string, receivedQty: number): void {
-    const reception = this.reception();
-    if (!reception || this.confirmed()) {
+    if (!this.reception() || this.confirmed()) {
       return;
     }
-    this.inFlight.get(lineId)?.unsubscribe();
+    const index = this.queue.findIndex((item) => item.lineId === lineId);
+    if (index >= 0) {
+      this.queue.splice(index, 1);
+    }
+    this.queue.push({lineId, receivedQty});
+    this.setLine(lineId, {received: receivedQty, state: 'pending'});
+    this.pump();
+  }
+
+  private pump(): void {
+    const reception = this.reception();
+    if (!reception || this.current || this.queue.length === 0) {
+      return;
+    }
+    const {lineId, receivedQty} = this.queue.shift()!;
     this.setLine(lineId, {received: receivedQty, state: 'saving'});
-    const sub = this.logistics
-      .saveReceptionLine(reception.id, lineId, receivedQty, () =>
-        this.setLine(lineId, {received: receivedQty, state: 'retrying'}),
+    const markRetrying = () => this.setLine(lineId, {received: receivedQty, state: 'retrying'});
+    this.current = this.logistics
+      .saveReceptionLine(reception.id, lineId, receivedQty, markRetrying)
+      .pipe(
+        retry({
+          count: 2,
+          delay: (error: unknown) => {
+            if (error instanceof ApiError && error.code === 'CONCURRENT_MODIFICATION') {
+              markRetrying();
+              return timer(300);
+            }
+            return throwError(() => error);
+          },
+        }),
       )
       .subscribe({
-        next: () => {
-          this.inFlight.delete(lineId);
-          this.setLine(lineId, {received: receivedQty, state: 'saved'});
-          this.refreshComparison();
-        },
+        next: () => this.finishLine(lineId, receivedQty, 'saved'),
         error: (err: unknown) => {
-          this.inFlight.delete(lineId);
-          this.setLine(lineId, {received: receivedQty, state: 'error'});
           this.error.set(toApiError(err).message);
+          this.finishLine(lineId, receivedQty, 'error');
         },
       });
-    this.inFlight.set(lineId, sub);
+  }
+
+  private finishLine(lineId: string, receivedQty: number, state: LineSaveState): void {
+    this.current = null;
+    // Si el usuario cambió la línea mientras se guardaba, queda pendiente el valor nuevo.
+    if (!this.queue.some((item) => item.lineId === lineId)) {
+      this.setLine(lineId, {received: receivedQty, state});
+    }
+    if (this.queue.length === 0) {
+      this.refreshComparison();
+    }
+    this.pump();
   }
 
   private setLine(lineId: string, value: LocalLine): void {
@@ -207,7 +243,7 @@ export class ReceptionPageComponent implements OnInit {
 
   private refreshComparison(): void {
     const reception = this.reception();
-    if (!reception || this.inFlight.size > 0) {
+    if (!reception || this.current || this.queue.length > 0) {
       return;
     }
     this.comparisonSub?.unsubscribe();
