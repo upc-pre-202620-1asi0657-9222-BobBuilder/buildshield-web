@@ -1,0 +1,54 @@
+<section class="page">
+  <div class="page-header">
+    <h1>Recepción en obra</h1>
+    <a class="btn" routerLink="/reception">Volver</a>
+  </div>
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (reception(); as r) {
+    @if (confirmed()) {
+      <p class="alert alert-success" role="status">
+        Recepción confirmada. Las diferencias fuera de tolerancia quedan registradas para su revisión.
+      </p>
+    } @else {
+      <p class="muted">
+        Las cantidades recibidas vienen con lo despachado. Corrige solo lo que llegó distinto; cada
+        cambio se guarda al salir del campo.
+      </p>
+    }
+
+    <div class="card">
+      <app-reception-comparison
+        [rows]="rows()"
+        [locked]="confirmed()"
+        (receivedChange)="onReceivedChange($event)"
+      />
+    </div>
+
+    @if (!confirmed()) {
+      <div class="confirm-bar">
+        <button
+          class="btn btn-primary btn-block confirm"
+          type="button"
+          (click)="confirm()"
+          [disabled]="!allSaved() || confirming()"
+        >
+          @if (confirming()) {
+            Confirmando…
+          } @else if (!allSaved()) {
+            Guardando {{ savingCount() }} {{ savingCount() === 1 ? 'línea' : 'líneas' }}…
+          } @else {
+            Confirmar recepción
+          }
+        </button>
+      </div>
+    } @else {
+      <a class="btn btn-block" routerLink="/reception">Volver a despachos en camino</a>
+    }
+  } @else if (!error()) {
+    <p class="muted">Abriendo recepción…</p>
+  }
+</section>

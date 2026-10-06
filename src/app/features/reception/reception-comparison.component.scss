@@ -1,0 +1,80 @@
+.summary {
+  margin: 0 0 12px;
+  color: var(--bs-color-muted);
+}
+
+.material {
+  .sku {
+    font-weight: 700;
+  }
+
+  .name {
+    display: block;
+    font-size: 0.85rem;
+    color: var(--bs-color-muted);
+  }
+}
+
+.received {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// RNF21: objetivo táctil de al menos 48 px.
+.received-input {
+  width: 7.5rem;
+  min-height: var(--bs-touch);
+  padding: 8px 10px;
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  font: inherit;
+  font-size: 1.1rem;
+  text-align: right;
+
+  &:focus {
+    outline: 2px solid var(--bs-color-primary);
+  }
+}
+
+.unit {
+  font-size: 0.85rem;
+  color: var(--bs-color-muted);
+}
+
+.save-state {
+  font-size: 0.85rem;
+  font-weight: 600;
+
+  &[data-state='saved'] {
+    color: var(--bs-color-success);
+  }
+
+  &[data-state='saving'],
+  &[data-state='pending'] {
+    color: var(--bs-color-muted);
+  }
+
+  &[data-state='retrying'] {
+    color: var(--bs-color-warning);
+  }
+
+  &[data-state='error'] {
+    color: var(--bs-color-danger);
+  }
+}
+
+.retry {
+  margin-left: 8px;
+}
+
+@media (max-width: 719px) {
+  .comparison td.material {
+    display: block;
+    font-size: 1.05rem;
+
+    &::before {
+      content: none;
+    }
+  }
+}
