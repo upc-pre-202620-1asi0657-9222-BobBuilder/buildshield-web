@@ -16,9 +16,11 @@ export function statusBadgeClass(status: string): string {
       return 'badge-bad';
     case 'REGISTERED':
     case 'PREPARED':
-    case 'IN_TRANSIT':
     case 'PARTIALLY_FULFILLED':
       return 'badge-warn';
+    case 'IN_TRANSIT':
+    case 'IN_REVIEW':
+      return 'badge-info';
     default:
       return '';
   }

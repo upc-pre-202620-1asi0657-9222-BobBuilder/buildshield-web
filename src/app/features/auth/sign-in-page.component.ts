@@ -12,8 +12,14 @@ import {homeRouteFor} from '../../core/models/role';
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
   template: `
+    <aside class="auth-side" aria-hidden="true">
+      <span class="side-brand"><img src="brand/mark-reverse.svg" alt="" width="40" height="40" />BuildShield</span>
+      <p class="side-claim">Lo que sale del almacén, llega a la obra. Y si no llega, se sabe.</p>
+      <p class="side-note">Despachos, recepción y merma por material, en una sola cuenta para toda la empresa.</p>
+    </aside>
     <section class="auth-card">
-      <h1 class="brand">Build<strong>Shield</strong></h1>
+      <img class="auth-logo" src="brand/mark.svg" alt="BuildShield" width="44" height="44" />
+      <h1>Inicia sesión</h1>
       <p class="muted">Trazabilidad de materiales entre almacén y obra.</p>
 
       @if (expired) {

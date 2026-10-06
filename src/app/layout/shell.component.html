@@ -1,39 +1,65 @@
-<header class="topbar no-print">
-  <a class="brand" routerLink="/">Build<strong>Shield</strong></a>
-  <span class="role">{{ roleLabel() }}</span>
-  <button
-    type="button"
-    class="menu-toggle"
-    [attr.aria-expanded]="menuOpen()"
-    aria-controls="main-nav"
-    (click)="toggleMenu()"
-  >
-    Menú
-  </button>
-</header>
+<a class="skip-link" href="#contenido">Saltar al contenido</a>
 
-<nav id="main-nav" class="nav no-print" [class.open]="menuOpen()" aria-label="Navegación principal">
-  <ul>
-    @for (item of navItems(); track item.path) {
-      <li>
-        <a [routerLink]="item.path" routerLinkActive="active" (click)="menuOpen.set(false)">
-          {{ item.label }}
-        </a>
-      </li>
+<div class="frame" [class.menu-open]="menuOpen()">
+  <header class="topbar no-print">
+    <a class="brand" routerLink="/" aria-label="BuildShield, inicio">
+      <img src="brand/mark-reverse.svg" alt="" width="32" height="32" />
+      <span class="wordmark" translate="no">BuildShield</span>
+    </a>
+    <button
+      type="button"
+      class="menu-toggle"
+      [attr.aria-expanded]="menuOpen()"
+      aria-controls="main-nav"
+      (click)="toggleMenu()"
+    >
+      <app-icon [name]="menuOpen() ? 'close' : 'menu'" />
+      <span>{{ menuOpen() ? 'Cerrar' : 'Menú' }}</span>
+    </button>
+  </header>
+
+  <aside class="rail no-print">
+    <a class="brand brand-rail" routerLink="/" aria-label="BuildShield, inicio">
+      <img src="brand/mark-reverse.svg" alt="" width="36" height="36" />
+      <span class="wordmark" translate="no">BuildShield</span>
+    </a>
+
+    <nav id="main-nav" class="nav" aria-label="Navegación principal">
+      <ul>
+        @for (item of navItems(); track item.path) {
+          <li>
+            <a
+              [routerLink]="item.path"
+              routerLinkActive="active"
+              ariaCurrentWhenActive="page"
+              (click)="menuOpen.set(false)"
+            >
+              <app-icon [name]="item.icon" />
+              <span>{{ item.label }}</span>
+            </a>
+          </li>
+        }
+      </ul>
+    </nav>
+
+    <div class="who">
+      <span class="role-label">Sesión como</span>
+      <span class="role">{{ roleLabel() }}</span>
+      <button type="button" class="sign-out" (click)="signOut()">
+        <app-icon name="sign-out" />
+        <span>Cerrar sesión</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="content">
+    @if (simulated) {
+      <p class="sim-banner no-print" role="status">
+        Modo simulado: despachos y recepciones se guardan en este navegador.
+      </p>
     }
-    <li>
-      <button type="button" class="sign-out" (click)="signOut()">Cerrar sesión</button>
-    </li>
-  </ul>
-</nav>
-
-@if (simulated) {
-  <p class="sim-banner no-print" role="status">
-    Modo simulado: despachos y recepciones se guardan en este navegador hasta que el backend del
-    Sprint 2 esté disponible.
-  </p>
-}
-
-<main>
-  <router-outlet />
-</main>
+    <main id="contenido" tabindex="-1">
+      <router-outlet />
+    </main>
+  </div>
+</div>

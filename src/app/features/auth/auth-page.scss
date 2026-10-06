@@ -1,42 +1,93 @@
-:host {
-  display: flex;
-  min-height: 100vh;
-  align-items: flex-start;
-  justify-content: center;
-  padding: 24px 16px;
+// Ingreso y registro: panel de marca en asfalto y formulario sobre concreto.
 
-  @media (min-width: 720px) {
-    align-items: center;
+:host {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 960px) {
+    grid-template-columns: minmax(360px, 5fr) 7fr;
   }
+}
+
+.auth-side {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 32px;
+  padding: 48px;
+  background: var(--bs-asfalto);
+  color: var(--bs-concreto);
+  border-right: 6px solid var(--bs-senal);
+
+  @media (min-width: 960px) {
+    display: flex;
+  }
+}
+
+.side-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--bs-font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.side-claim {
+  margin: 0;
+  font-family: var(--bs-font-display);
+  font-weight: 800;
+  font-size: clamp(2.5rem, 4.2vw, 4rem);
+  line-height: 0.98;
+  max-width: 13ch;
+  text-wrap: balance;
+}
+
+.side-note {
+  margin: 0;
+  max-width: 36ch;
+  color: #b9c0bc;
 }
 
 .auth-card {
+  align-self: center;
+  justify-self: center;
   width: 100%;
-  max-width: 480px;
-  background: var(--bs-color-surface);
-  border: 1px solid var(--bs-color-border);
-  border-radius: var(--bs-radius);
-  padding: 24px 20px;
+  max-width: 460px;
+  padding: 32px 20px 48px;
+
+  h1 {
+    font-size: 2.5rem;
+    margin: 20px 0 6px;
+  }
 }
 
-.brand {
-  margin: 0 0 4px;
-  font-size: 1.6rem;
-  color: var(--bs-color-primary);
-
-  strong {
-    color: var(--bs-color-accent);
-  }
+.auth-logo {
+  display: block;
 }
 
 form {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-top: 16px;
+  gap: 16px;
+  margin-top: 24px;
+
+  .btn {
+    margin-top: 8px;
+    min-height: 52px;
+  }
 }
 
 .switch {
-  margin-top: 16px;
-  text-align: center;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--bs-junta);
+  color: var(--bs-acero);
+
+  a {
+    font-weight: 600;
+  }
 }
