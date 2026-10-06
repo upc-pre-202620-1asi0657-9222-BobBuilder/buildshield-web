@@ -48,6 +48,7 @@ export interface Warehouse {
 
 export interface CreateWarehouseRequest {
   name: string;
+  type: WarehouseType;
   address: string;
 }
 

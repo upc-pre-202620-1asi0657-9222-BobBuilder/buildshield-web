@@ -4,7 +4,7 @@ import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
 import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {AuthService} from '../../core/auth/auth.service';
 import {toApiError} from '../../core/http/api-error';
-import {Warehouse} from '../../core/models/organization';
+import {Warehouse, WarehouseType} from '../../core/models/organization';
 
 const TYPE_LABELS: Readonly<Partial<Record<string, string>>> = {
   WAREHOUSE: 'Almacén',
@@ -30,6 +30,13 @@ const TYPE_LABELS: Readonly<Partial<Record<string, string>>> = {
               <div class="field">
                 <label for="name">Nombre</label>
                 <input id="name" formControlName="name" />
+              </div>
+              <div class="field">
+                <label for="type">Tipo</label>
+                <select id="type" formControlName="type">
+                  <option value="WAREHOUSE">Almacén</option>
+                  <option value="COLLECTION_CENTER">Centro de acopio</option>
+                </select>
               </div>
               <div class="field">
                 <label for="address">Dirección</label>
@@ -82,6 +89,7 @@ export class WarehousesPageComponent implements OnInit {
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
+    type: ['WAREHOUSE' as WarehouseType, Validators.required],
     address: ['', [Validators.required, Validators.maxLength(200)]],
   });
 
@@ -99,7 +107,7 @@ export class WarehousesPageComponent implements OnInit {
     this.api.createWarehouse(this.form.getRawValue()).subscribe({
       next: () => {
         this.saving.set(false);
-        this.form.reset();
+        this.form.reset({type: 'WAREHOUSE'});
         this.load();
       },
       error: (err: unknown) => {
