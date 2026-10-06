@@ -1,0 +1,76 @@
+<section class="page">
+  <div class="page-header">
+    <h1>Nuevo pedido</h1>
+    <a class="btn" routerLink="/orders">Volver</a>
+  </div>
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+
+  <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <div class="form-grid">
+      <div class="field">
+        <label for="worksite">Obra</label>
+        <select id="worksite" formControlName="worksiteId">
+          <option value="">Selecciona…</option>
+          @for (w of worksites(); track w.id) {
+            <option [value]="w.id">{{ w.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="warehouse">Almacén</label>
+        <select id="warehouse" formControlName="warehouseId">
+          <option value="">Selecciona…</option>
+          @for (w of warehouses(); track w.id) {
+            <option [value]="w.id">{{ w.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="requiredDate">Fecha requerida en obra</label>
+        <input id="requiredDate" type="date" [min]="minDate" formControlName="requiredDate" />
+      </div>
+      <div class="field">
+        <label for="notes">Notas (opcional)</label>
+        <input id="notes" formControlName="notes" maxlength="400" />
+      </div>
+    </div>
+
+    <h2 style="margin-top: 20px">Materiales</h2>
+    <div formArrayName="lines">
+      @for (line of lines.controls; track line; let i = $index) {
+        <div class="line" [formGroupName]="i">
+          <div class="field">
+            <label [for]="'material-' + i">Material</label>
+            <select [id]="'material-' + i" formControlName="materialId">
+              <option value="">Selecciona…</option>
+              @for (m of materials(); track m.id) {
+                <option [value]="m.id">{{ m.sku }} · {{ m.name }}</option>
+              }
+            </select>
+          </div>
+          <div class="field">
+            <label [for]="'qty-' + i">Cantidad {{ unitOf(line.value.materialId ?? '') }}</label>
+            <input [id]="'qty-' + i" type="number" inputmode="decimal" min="0" step="0.001" formControlName="quantity" />
+          </div>
+          <button type="button" class="btn btn-danger" (click)="removeLine(i)" [disabled]="lines.length === 1">
+            Quitar
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (form.touched && form.invalid) {
+      <p class="error">Completa obra, almacén, fecha y cada material con una cantidad mayor que cero.</p>
+    }
+
+    <div class="form-actions">
+      <button type="button" class="btn" (click)="addLine()">Agregar material</button>
+      <button type="submit" class="btn btn-primary" [disabled]="saving()">
+        {{ saving() ? 'Enviando…' : 'Enviar pedido' }}
+      </button>
+    </div>
+  </form>
+</section>

@@ -1,0 +1,99 @@
+<section class="page">
+  <div class="page-header">
+    <h1>Pedido</h1>
+    <a class="btn" routerLink="/orders">Volver</a>
+  </div>
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+
+  @if (order(); as o) {
+    <div class="card">
+      <p>
+        <span class="badge" [class]="'badge ' + badge(o.status)">{{ label(o) }}</span>
+      </p>
+      <p><strong>Obra:</strong> {{ worksiteName() }}</p>
+      <p><strong>Almacén:</strong> {{ warehouseName() }}</p>
+      <p><strong>Registrado:</strong> {{ o.placedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+      @if (o.requiredDate) {
+        <p><strong>Fecha requerida:</strong> {{ o.requiredDate | date: 'dd/MM/yyyy' }}</p>
+      }
+      @if (o.notes) {
+        <p><strong>Notas:</strong> {{ o.notes }}</p>
+      }
+      @if (o.rejectionReason) {
+        <p class="alert alert-error"><strong>Motivo del rechazo:</strong> {{ o.rejectionReason }}</p>
+      }
+
+      @if (canDecide()) {
+        <div class="form-actions">
+          <button class="btn btn-primary" type="button" (click)="approve()" [disabled]="busy()">Aprobar</button>
+          <button class="btn btn-danger" type="button" (click)="showReject.set(!showReject())" [disabled]="busy()">
+            Rechazar
+          </button>
+        </div>
+        @if (showReject()) {
+          <div class="field" style="margin-top: 12px">
+            <label for="reason">Motivo del rechazo</label>
+            <input id="reason" [(ngModel)]="rejectReason" maxlength="500" />
+            <div class="form-actions">
+              <button class="btn btn-danger" type="button" (click)="reject()" [disabled]="busy()">
+                Confirmar rechazo
+              </button>
+            </div>
+          </div>
+        }
+      }
+      @if (canDispatch()) {
+        <div class="form-actions">
+          <a class="btn btn-primary" [routerLink]="['/dispatches/new']" [queryParams]="{orderId: o.id}">
+            Crear despacho
+          </a>
+        </div>
+      }
+    </div>
+
+    <div class="card">
+      <h2>Materiales</h2>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>SKU</th>
+            <th class="num">Solicitado</th>
+            <th class="num">Despachado</th>
+            <th class="num">Recibido</th>
+            <th class="num">Pendiente</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (line of o.lines; track line.materialId) {
+            <tr>
+              <td data-label="SKU">{{ line.sku }} <span class="muted">{{ line.unit }}</span></td>
+              <td data-label="Solicitado" class="num">{{ line.requested | number: '1.0-3' }}</td>
+              <td data-label="Despachado" class="num">{{ line.dispatched | number: '1.0-3' }}</td>
+              <td data-label="Recibido" class="num">{{ line.received | number: '1.0-3' }}</td>
+              <td data-label="Pendiente" class="num">{{ line.pending | number: '1.0-3' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (dispatches().length) {
+      <div class="card">
+        <h2>Despachos</h2>
+        <ul class="list-plain">
+          @for (d of dispatches(); track d.id) {
+            <li style="padding: 6px 0">
+              {{ d.code ?? d.id.slice(0, 8) }} ·
+              <span class="badge" [class]="'badge ' + badge(d.status)">{{ dispatchLabel(d) }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  } @else if (!error()) {
+    <p class="muted">Cargando…</p>
+  }
+</section>
