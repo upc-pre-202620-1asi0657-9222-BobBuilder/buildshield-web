@@ -1,7 +1,12 @@
 <section class="page">
   <div class="page-header">
     <h1>Recepción en obra</h1>
-    <a class="btn" routerLink="/reception">Volver</a>
+    <div class="actions">
+      <a class="btn btn-ghost" routerLink="/reception">
+        <app-icon name="back" />
+        Despachos en camino
+      </a>
+    </div>
   </div>
 
   @if (error()) {
@@ -14,41 +19,49 @@
         Recepción confirmada. Las diferencias fuera de tolerancia quedan registradas para su revisión.
       </p>
     } @else {
-      <p class="muted">
-        Las cantidades recibidas vienen con lo despachado. Corrige solo lo que llegó distinto; cada
+      <p class="lead">
+        Cada cantidad recibida empieza igual a lo despachado. Corrige solo lo que llegó distinto: el
         cambio se guarda al salir del campo.
       </p>
     }
 
-    <div class="card">
-      <app-reception-comparison
-        [rows]="rows()"
-        [locked]="confirmed()"
-        (receivedChange)="onReceivedChange($event)"
-      />
-    </div>
+    <app-reception-comparison
+      [rows]="rows()"
+      [locked]="confirmed()"
+      (receivedChange)="onReceivedChange($event)"
+    />
 
     @if (!confirmed()) {
       <div class="confirm-bar">
-        <button
-          class="btn btn-primary btn-block confirm"
-          type="button"
-          (click)="confirm()"
-          [disabled]="!allSaved() || confirming()"
-        >
-          @if (confirming()) {
-            Confirmando…
-          } @else if (!allSaved()) {
-            Guardando {{ savingCount() }} {{ savingCount() === 1 ? 'línea' : 'líneas' }}…
-          } @else {
-            Confirmar recepción
-          }
-        </button>
+        <div class="confirm-inner">
+          <p class="confirm-status" aria-live="polite">
+            @if (!allSaved()) {
+              Guardando {{ savingCount() }} {{ savingCount() === 1 ? 'línea' : 'líneas' }}…
+            } @else {
+              Todo guardado. Revisa y confirma.
+            }
+          </p>
+          <button
+            class="btn btn-primary confirm"
+            type="button"
+            (click)="confirm()"
+            [disabled]="!allSaved() || confirming()"
+          >
+            <app-icon name="check" />
+            @if (confirming()) {
+              Confirmando…
+            } @else if (!allSaved()) {
+              Guardando {{ savingCount() }} {{ savingCount() === 1 ? 'línea' : 'líneas' }}…
+            } @else {
+              Confirmar recepción
+            }
+          </button>
+        </div>
       </div>
     } @else {
-      <a class="btn btn-block" routerLink="/reception">Volver a despachos en camino</a>
+      <a class="btn btn-block back-list" routerLink="/reception">Volver a despachos en camino</a>
     }
   } @else if (!error()) {
-    <p class="muted">Abriendo recepción…</p>
+    <p class="loading">Abriendo recepción…</p>
   }
 </section>

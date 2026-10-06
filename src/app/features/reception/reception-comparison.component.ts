@@ -9,9 +9,8 @@ import {
 } from './reception-models';
 
 /**
- * T37: tabla de comparación solicitado / despachado / recibido por material,
- * con merma, badge de tolerancia y estado de guardado de cada línea. En
- * pantallas angostas cada fila se muestra como tarjeta (estilos globales).
+ * T37: comparación solicitado / despachado / recibido por material, con el
+ * medidor de merma frente a la tolerancia y el estado de guardado de cada línea.
  */
 @Component({
   selector: 'app-reception-comparison',
@@ -31,6 +30,23 @@ export class ReceptionComparisonComponent {
   protected readonly outOfTolerance = computed(
     () => this.rows().filter((r) => r.withinTolerance === false).length,
   );
+
+  protected readonly evaluated = computed(
+    () => this.rows().filter((r) => r.withinTolerance !== null).length,
+  );
+
+  protected clampPct(value: number): number {
+    return Math.min(100, Math.max(0, value));
+  }
+
+  /** Porcentaje de lo despachado que llegó; sin dato, se asume completo. */
+  protected fillPercent(row: ReceptionLineView): number {
+    if (row.dispatched <= 0) {
+      return 0;
+    }
+    const received = row.received ?? row.dispatched;
+    return this.clampPct((received / row.dispatched) * 100);
+  }
 
   protected stateLabel(state: LineSaveState): string {
     return SAVE_STATE_LABELS[state];

@@ -1,53 +1,258 @@
+// Ficha por material con el medidor de merma: el elemento central del producto.
+
 .summary {
-  margin: 0 0 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 0 0 16px;
   color: var(--bs-color-muted);
+  font-weight: 500;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.line {
+  background: var(--bs-losa);
+  border: 1px solid var(--bs-junta);
+  border-left: 5px solid var(--bs-junta);
+  border-radius: var(--bs-radius);
+  padding: 16px 16px 12px 18px;
+  transition: border-color 200ms var(--bs-ease);
+
+  &.is-ok {
+    border-left-color: var(--bs-conforme);
+  }
+
+  &.is-out {
+    border-left-color: var(--bs-merma);
+  }
+}
+
+.line-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px 12px;
+  margin-bottom: 14px;
 }
 
 .material {
+  min-width: 0;
+
   .sku {
-    font-weight: 700;
+    display: block;
+    font-family: var(--bs-font-display);
+    font-weight: 800;
+    font-size: 1.35rem;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
   }
 
   .name {
     display: block;
-    font-size: 0.85rem;
     color: var(--bs-color-muted);
+    overflow-wrap: anywhere;
   }
 }
 
-.received {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+.line-body {
+  display: grid;
+  gap: 18px;
+
+  @media (min-width: 720px) {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+    align-items: center;
+    gap: 32px;
+  }
 }
 
-// RNF21: objetivo táctil de al menos 48 px.
-.received-input {
-  width: 7.5rem;
-  min-height: var(--bs-touch);
-  padding: 8px 10px;
-  border: 1px solid var(--bs-color-border);
-  border-radius: var(--bs-radius);
-  font: inherit;
-  font-size: 1.1rem;
-  text-align: right;
+.figures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  margin: 0;
 
-  &:focus {
-    outline: 2px solid var(--bs-color-primary);
+  dt {
+    font-size: 0.8125rem;
+    color: var(--bs-color-muted);
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .received {
+    grid-column: 1 / -1;
+
+    label {
+      font-weight: 600;
+      color: var(--bs-asfalto);
+      font-size: 0.9375rem;
+    }
+
+    dd {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 6px;
+    }
+  }
+}
+
+// RNF21: objetivo táctil de al menos 48 px; cifra grande para leer al sol.
+.received-input {
+  width: 100%;
+  max-width: 11rem;
+  min-height: 56px;
+  padding: 8px 14px;
+  border: 2px solid var(--bs-asfalto);
+  border-radius: var(--bs-radius-control);
+  background: var(--bs-losa);
+  color: var(--bs-asfalto);
+  font-family: var(--bs-font-display);
+  font-weight: 800;
+  font-size: 1.75rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+
+  &:disabled {
+    border-color: var(--bs-junta);
+    background: var(--bs-junta-suave);
+    color: var(--bs-acero);
   }
 }
 
 .unit {
-  font-size: 0.85rem;
+  font-weight: 600;
   color: var(--bs-color-muted);
 }
 
+.meter {
+  min-width: 0;
+}
+
+.readout {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin-bottom: 8px;
+
+  .pct {
+    font-family: var(--bs-font-display);
+    font-weight: 800;
+    font-size: 2.5rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pct-label {
+    color: var(--bs-color-muted);
+  }
+}
+
+.is-out .readout .pct {
+  color: var(--bs-merma);
+}
+
+.is-ok .readout .pct {
+  color: var(--bs-conforme);
+}
+
+// Pista = lo despachado. Relleno = lo recibido. Franja final = zona de tolerancia.
+.track {
+  position: relative;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--bs-junta-suave);
+  overflow: hidden;
+
+  .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    background: var(--bs-asfalto);
+    transition: width 250ms var(--bs-ease);
+  }
+
+  .allowed {
+    position: absolute;
+    inset: 0 0 0 auto;
+    background: repeating-linear-gradient(-45deg, var(--bs-pendiente-bg) 0 4px, #f2dc93 4px 8px);
+  }
+
+  .tol {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--bs-asfalto);
+  }
+}
+
+.is-ok .track .fill {
+  background: var(--bs-conforme);
+}
+
+.is-out .track .fill {
+  background: var(--bs-merma);
+}
+
+.scale {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  min-height: 1.4em;
+  font-size: 0.8125rem;
+  color: var(--bs-color-muted);
+  font-variant-numeric: tabular-nums;
+
+}
+
+.tol-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+  color: var(--bs-color-muted);
+}
+
+.tol-key {
+  flex: none;
+  width: 14px;
+  height: 10px;
+  border-right: 2px solid var(--bs-asfalto);
+  background: repeating-linear-gradient(-45deg, var(--bs-pendiente-bg) 0 3px, #f2dc93 3px 6px);
+}
+
+.line-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bs-junta-suave);
+}
+
 .save-state {
-  font-size: 0.85rem;
+  font-size: 0.875rem;
   font-weight: 600;
 
   &[data-state='saved'] {
-    color: var(--bs-color-success);
+    color: var(--bs-conforme);
   }
 
   &[data-state='saving'],
@@ -56,25 +261,10 @@
   }
 
   &[data-state='retrying'] {
-    color: var(--bs-color-warning);
+    color: var(--bs-pendiente);
   }
 
   &[data-state='error'] {
-    color: var(--bs-color-danger);
-  }
-}
-
-.retry {
-  margin-left: 8px;
-}
-
-@media (max-width: 719px) {
-  .comparison td.material {
-    display: block;
-    font-size: 1.05rem;
-
-    &::before {
-      content: none;
-    }
+    color: var(--bs-merma);
   }
 }

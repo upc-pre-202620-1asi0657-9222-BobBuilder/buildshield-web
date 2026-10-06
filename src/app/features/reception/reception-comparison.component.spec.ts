@@ -34,12 +34,12 @@ describe('ReceptionComparisonComponent', () => {
   }
 
   function rowElement(lineId: string): HTMLElement {
-    return element.querySelector(`tr[data-line="${lineId}"]`) as HTMLElement;
+    return element.querySelector(`[data-line="${lineId}"]`) as HTMLElement;
   }
 
   function cell(lineId: string, label: string): string {
     return (
-      rowElement(lineId).querySelector(`td[data-label="${label}"]`)?.textContent?.trim() ?? ''
+      rowElement(lineId).querySelector(`[data-label="${label}"]`)?.textContent?.trim() ?? ''
     );
   }
 
@@ -67,7 +67,7 @@ describe('ReceptionComparisonComponent', () => {
       }),
     ]);
 
-    expect(element.querySelectorAll('tbody tr').length).toBe(2);
+    expect(element.querySelectorAll('.line').length).toBe(2);
     expect(cell('l2', 'Solicitado')).toBe('180');
     expect(cell('l2', 'Despachado')).toBe('150');
     expect((rowElement('l2').querySelector('input') as HTMLInputElement).value).toBe('140');

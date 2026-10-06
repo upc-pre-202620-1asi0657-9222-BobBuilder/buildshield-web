@@ -6,6 +6,7 @@ import {LogisticsApi, computeShrinkage} from '../../core/api/logistics-api';
 import {ApiError, shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {ComparisonRow, Reception} from '../../core/models/logistics';
 import {generateUuid} from '../../core/util/uuid';
+import {IconComponent} from '../../shared/icon.component';
 import {ReceptionComparisonComponent} from './reception-comparison.component';
 import {LineSaveState, ReceivedChange, ReceptionLineView} from './reception-models';
 
@@ -27,7 +28,7 @@ interface LocalLine {
 @Component({
   selector: 'app-reception-page',
   standalone: true,
-  imports: [RouterLink, ReceptionComparisonComponent],
+  imports: [RouterLink, ReceptionComparisonComponent, IconComponent],
   templateUrl: './reception-page.component.html',
   styleUrl: './reception-page.component.scss',
 })

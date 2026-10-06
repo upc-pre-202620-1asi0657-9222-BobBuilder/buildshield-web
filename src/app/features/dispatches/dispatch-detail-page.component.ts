@@ -10,13 +10,15 @@ import {Material} from '../../core/models/organization';
 import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {DISPATCH_TYPE_LABELS, Dispatch, dispatchStatusLabel} from '../../core/models/logistics';
 import {generateUuid} from '../../core/util/uuid';
+import {DispatchTrackComponent} from '../../shared/dispatch-track.component';
+import {IconComponent} from '../../shared/icon.component';
 import {statusBadgeClass} from '../../shared/status';
 
 /** Transportista, pesaje de salida y salida del despacho; enlace al manifiesto imprimible. */
 @Component({
   selector: 'app-dispatch-detail-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, IconComponent, DispatchTrackComponent],
   templateUrl: './dispatch-detail-page.component.html',
 })
 export class DispatchDetailPageComponent implements OnInit {

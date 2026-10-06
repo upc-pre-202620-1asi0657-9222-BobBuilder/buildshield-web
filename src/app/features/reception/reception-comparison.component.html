@@ -1,74 +1,107 @@
 <p class="summary" aria-live="polite">
-  {{ rows().length }} {{ rows().length === 1 ? 'material' : 'materiales' }}
+  <span>{{ rows().length }} {{ rows().length === 1 ? 'material' : 'materiales' }}</span>
   @if (outOfTolerance() > 0) {
-    · <span class="badge badge-bad">{{ outOfTolerance() }} fuera de tolerancia</span>
+    <span class="badge badge-bad">{{ outOfTolerance() }} fuera de tolerancia</span>
+  } @else if (rows().length > 0 && evaluated() === rows().length) {
+    <span class="badge badge-ok">Todo dentro de tolerancia</span>
   }
 </p>
 
-<table class="table comparison">
-  <thead>
-    <tr>
-      <th>Material</th>
-      <th class="num">Solicitado</th>
-      <th class="num">Despachado</th>
-      <th>Recibido</th>
-      <th class="num">Diferencia</th>
-      <th class="num">Merma</th>
-      <th>Tolerancia</th>
-      <th>Estado</th>
-    </tr>
-  </thead>
-  <tbody>
-    @for (row of rows(); track row.lineId) {
-      <tr [attr.data-line]="row.lineId">
-        <td data-label="Material" class="material">
+<ul class="lines list-plain">
+  @for (row of rows(); track row.lineId) {
+    <li
+      class="line"
+      [attr.data-line]="row.lineId"
+      [class.is-out]="row.withinTolerance === false"
+      [class.is-ok]="row.withinTolerance === true"
+    >
+      <header class="line-head">
+        <div class="material">
           <span class="sku">{{ row.sku }}</span>
           @if (row.materialName) {
             <span class="name">{{ row.materialName }}</span>
           }
-        </td>
-        <td data-label="Solicitado" class="num">{{ row.requested | number: '1.0-3' }}</td>
-        <td data-label="Despachado" class="num">{{ row.dispatched | number: '1.0-3' }}</td>
-        <td data-label="Recibido">
-          <span class="received">
-            <input
-              class="received-input"
-              type="number"
-              inputmode="decimal"
-              min="0"
-              step="0.001"
-              [value]="row.received ?? ''"
-              [disabled]="locked()"
-              [attr.aria-label]="'Cantidad recibida de ' + row.sku"
-              (change)="onInput(row, $any($event.target).value)"
-            />
-            @if (row.unit) {
-              <span class="unit">{{ row.unit }}</span>
-            }
-          </span>
-        </td>
-        <td data-label="Diferencia" class="num">{{ row.difference | number: '1.0-3' }}</td>
-        <td data-label="Merma" class="num">{{ row.shrinkagePercent | number: '1.0-2' }} %</td>
-        <td data-label="Tolerancia">
-          @switch (row.withinTolerance) {
-            @case (true) {
-              <span class="badge badge-ok tolerance">Dentro de tolerancia</span>
-            }
-            @case (false) {
-              <span class="badge badge-bad tolerance">Fuera de tolerancia</span>
-            }
-            @default {
-              <span class="badge tolerance">Por evaluar</span>
-            }
+        </div>
+        @switch (row.withinTolerance) {
+          @case (true) {
+            <span class="badge badge-ok tolerance" data-label="Tolerancia">Dentro de tolerancia</span>
           }
-        </td>
-        <td data-label="Estado">
-          <span class="save-state" [attr.data-state]="row.saveState">{{ stateLabel(row.saveState) }}</span>
-          @if (row.saveState === 'error' && !locked()) {
-            <button class="btn retry" type="button" (click)="retry(row)">Reintentar</button>
+          @case (false) {
+            <span class="badge badge-bad tolerance" data-label="Tolerancia">Fuera de tolerancia</span>
           }
-        </td>
-      </tr>
-    }
-  </tbody>
-</table>
+          @default {
+            <span class="badge tolerance" data-label="Tolerancia">Por evaluar</span>
+          }
+        }
+      </header>
+
+      <div class="line-body">
+        <dl class="figures">
+          <div>
+            <dt>Solicitado</dt>
+            <dd data-label="Solicitado">{{ row.requested | number: '1.0-3' }}</dd>
+          </div>
+          <div>
+            <dt>Despachado</dt>
+            <dd data-label="Despachado">{{ row.dispatched | number: '1.0-3' }}</dd>
+          </div>
+          <div class="received">
+            <dt><label [attr.for]="'rec-' + row.lineId">Recibido</label></dt>
+            <dd>
+              <input
+                [id]="'rec-' + row.lineId"
+                class="received-input"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.001"
+                [value]="row.received ?? ''"
+                [disabled]="locked()"
+                [attr.aria-label]="'Cantidad recibida de ' + row.sku"
+                [attr.aria-describedby]="'meter-' + row.lineId"
+                (change)="onInput(row, $any($event.target).value)"
+              />
+              @if (row.unit) {
+                <span class="unit">{{ row.unit }}</span>
+              }
+            </dd>
+          </div>
+        </dl>
+
+        <div class="meter" [id]="'meter-' + row.lineId">
+          <div class="readout">
+            <span class="pct" data-label="Merma">{{ row.shrinkagePercent | number: '1.0-2' }} %</span>
+            <span class="pct-label">
+              de merma, diferencia
+              <span data-label="Diferencia">{{ row.difference | number: '1.0-3' }}</span>
+            </span>
+          </div>
+          <div class="track" aria-hidden="true">
+            @if (row.tolerancePercent !== undefined && row.tolerancePercent !== null) {
+              <span class="allowed" [style.width.%]="clampPct(row.tolerancePercent)"></span>
+              <span class="tol" [style.left.%]="100 - clampPct(row.tolerancePercent)"></span>
+            }
+            <span class="fill" [style.width.%]="fillPercent(row)"></span>
+          </div>
+          <div class="scale" aria-hidden="true">
+            <span>0</span>
+            <span>{{ row.dispatched | number: '1.0-3' }} despachado</span>
+          </div>
+          @if (row.tolerancePercent !== undefined && row.tolerancePercent !== null) {
+            <p class="tol-note">
+              <span class="tol-key" aria-hidden="true"></span>
+              Tolerancia {{ row.tolerancePercent | number: '1.0-2' }} %: la línea marca el mínimo aceptable.
+            </p>
+          }
+        </div>
+      </div>
+
+      <footer class="line-foot">
+        <span class="save-state" [attr.data-state]="row.saveState" data-label="Estado">{{ stateLabel(row.saveState) }}</span>
+        @if (row.saveState === 'error' && !locked()) {
+          <button class="btn retry" type="button" (click)="retry(row)">Reintentar</button>
+        }
+      </footer>
+    </li>
+  }
+</ul>
