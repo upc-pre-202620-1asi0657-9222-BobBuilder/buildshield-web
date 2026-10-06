@@ -8,7 +8,7 @@ import {LogisticsApi} from '../../core/api/logistics-api';
 import {OrdersApiService} from '../../core/api/orders-api.service';
 import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {AuthService} from '../../core/auth/auth.service';
-import {toApiError} from '../../core/http/api-error';
+import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {Dispatch, dispatchStatusLabel} from '../../core/models/logistics';
 import {DISPATCHABLE_ORDER_STATUSES, Order} from '../../core/models/order';
 import {generateUuid} from '../../core/util/uuid';
@@ -89,8 +89,13 @@ export class OrderDetailPageComponent implements OnInit {
         this.order.set(order);
       },
       error: (err: unknown) => {
+        const apiError = toApiError(err);
         this.busy.set(false);
-        this.error.set(toApiError(err).message);
+        this.error.set(apiError.message);
+        if (!shouldReuseIdempotencyKey(apiError)) {
+          this.approveKey = generateUuid();
+          this.rejectKey = generateUuid();
+        }
       },
     });
   }

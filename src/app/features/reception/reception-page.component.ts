@@ -3,7 +3,7 @@ import {RouterLink} from '@angular/router';
 import {Subscription} from 'rxjs';
 
 import {LogisticsApi, computeShrinkage} from '../../core/api/logistics-api';
-import {toApiError} from '../../core/http/api-error';
+import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {ComparisonRow, Reception} from '../../core/models/logistics';
 import {generateUuid} from '../../core/util/uuid';
 import {ReceptionComparisonComponent} from './reception-comparison.component';
@@ -56,48 +56,40 @@ export class ReceptionPageComponent implements OnInit {
     if (!reception) {
       return [];
     }
-    const byMaterial = new Map(this.comparison().map((row) => [row.materialId, row]));
+    const byLine = new Map(this.comparison().map((row) => [row.lineId, row]));
     const local = this.local();
     return reception.lines.map((line) => {
       const state = local[line.id] ?? {received: line.receivedQty, state: 'pending'};
-      const server = byMaterial.get(line.materialId);
-      const serverIsCurrent = !!server && state.state === 'saved' && server.received === state.received;
-      if (server && serverIsCurrent) {
+      const server = byLine.get(line.id);
+      const base = {
+        lineId: line.id,
+        materialId: line.materialId,
+        sku: server?.sku ?? '…',
+        materialName: server?.materialName,
+        unit: server?.unit,
+        requested: server?.requested ?? line.dispatchedQty,
+        dispatched: line.dispatchedQty,
+        received: state.received,
+        tolerancePercent: server?.tolerancePercent,
+        saveState: state.state,
+      };
+      // El backend manda cuando su cotejo ya refleja lo guardado.
+      if (server && state.state === 'saved' && server.received === state.received && server.difference !== null) {
         return {
-          lineId: line.id,
-          materialId: line.materialId,
-          sku: line.sku,
-          materialName: line.materialName ?? server.materialName,
-          unit: line.unit,
-          requested: server.requested,
-          dispatched: server.dispatched,
-          received: state.received,
+          ...base,
           difference: server.difference,
-          shrinkagePercent: server.shrinkagePercent,
+          shrinkagePercent: server.shrinkagePercent ?? 0,
           withinTolerance: server.withinTolerance,
-          tolerancePercent: server.tolerancePercent,
-          saveState: state.state,
         };
       }
       const {difference, shrinkagePercent} = computeShrinkage(line.dispatchedQty, state.received);
       const tolerance = server?.tolerancePercent;
       return {
-        lineId: line.id,
-        materialId: line.materialId,
-        sku: line.sku,
-        materialName: line.materialName ?? server?.materialName,
-        unit: line.unit,
-        requested: server?.requested ?? line.dispatchedQty,
-        dispatched: line.dispatchedQty,
-        received: state.received,
+        ...base,
         difference,
         shrinkagePercent,
         withinTolerance:
-          tolerance !== undefined && state.received !== null
-            ? Math.abs(shrinkagePercent) <= tolerance
-            : null,
-        tolerancePercent: tolerance,
-        saveState: state.state,
+          tolerance !== undefined && state.received !== null ? shrinkagePercent <= tolerance : null,
       };
     });
   });
@@ -134,12 +126,16 @@ export class ReceptionPageComponent implements OnInit {
     this.logistics.confirmReception(reception.id, this.confirmKey).subscribe({
       next: (confirmed) => {
         this.confirming.set(false);
-        this.reception.set({...reception, ...confirmed, lines: reception.lines, status: 'CONFIRMED'});
+        this.reception.set({...confirmed, status: 'CONFIRMED'});
         this.refreshComparison();
       },
       error: (err: unknown) => {
+        const apiError = toApiError(err);
         this.confirming.set(false);
-        this.error.set(toApiError(err).message);
+        this.error.set(apiError.message);
+        if (!shouldReuseIdempotencyKey(apiError)) {
+          this.confirmKey = generateUuid();
+        }
       },
     });
   }
@@ -154,6 +150,7 @@ export class ReceptionPageComponent implements OnInit {
       };
     }
     this.local.set(initial);
+    this.loadComparison(reception.id);
     if (reception.status === 'CONFIRMED') {
       this.refreshComparison();
       return;
@@ -198,6 +195,16 @@ export class ReceptionPageComponent implements OnInit {
     this.local.update((all) => ({...all, [lineId]: value}));
   }
 
+  private loadComparison(receptionId: string): void {
+    this.logistics.getComparison(receptionId).subscribe({
+      next: (comparison) => {
+        if (this.comparison().length === 0) {
+          this.comparison.set(comparison.lines);
+        }
+      },
+    });
+  }
+
   private refreshComparison(): void {
     const reception = this.reception();
     if (!reception || this.inFlight.size > 0) {
@@ -205,7 +212,7 @@ export class ReceptionPageComponent implements OnInit {
     }
     this.comparisonSub?.unsubscribe();
     this.comparisonSub = this.logistics.getComparison(reception.id).subscribe({
-      next: (rows) => this.comparison.set(rows),
+      next: (comparison) => this.comparison.set(comparison.lines),
       error: (err: unknown) => this.error.set(toApiError(err).message),
     });
   }

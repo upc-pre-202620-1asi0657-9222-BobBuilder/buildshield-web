@@ -50,13 +50,13 @@ import {nameIndex, statusBadgeClass} from '../../shared/status';
       <div class="card">
         <h2>Despachos</h2>
         <table class="table">
-          <thead><tr><th>Código</th><th>Obra</th><th>Creado</th><th>Estado</th><th></th></tr></thead>
+          <thead><tr><th>Código</th><th>Obra</th><th>Preparado</th><th>Estado</th><th></th></tr></thead>
           <tbody>
             @for (d of dispatches(); track d.id) {
               <tr>
-                <td data-label="Código">{{ d.code ?? d.id.slice(0, 8) }}</td>
+                <td data-label="Código">{{ d.manifestCode }}</td>
                 <td data-label="Obra">{{ (d.worksiteId && worksiteNames().get(d.worksiteId)) || '-' }}</td>
-                <td data-label="Creado">{{ d.createdAt ? (d.createdAt | date: 'dd/MM/yyyy HH:mm') : '-' }}</td>
+                <td data-label="Preparado">{{ d.preparedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
                 <td data-label="Estado"><span [class]="'badge ' + badge(d.status)">{{ label(d) }}</span></td>
                 <td data-label=""><a class="btn" [routerLink]="['/dispatches', d.id]">Abrir</a></td>
               </tr>

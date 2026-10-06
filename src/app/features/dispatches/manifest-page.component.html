@@ -13,15 +13,15 @@
       <div>
         <p class="brand">Build<strong>Shield</strong></p>
         <h1>Manifiesto de despacho</h1>
-        <p class="code">{{ m.code ?? m.id }}</p>
-        <p class="status">Estado: {{ label(m) }}</p>
+        <p class="code">{{ m.manifestCode }}</p>
+        <p class="status">Estado: {{ label(m) }} · {{ typeLabel(m.type) }}</p>
       </div>
       <figure class="qr">
         @if (qrSrc(); as src) {
           <img [src]="src" alt="Código QR del despacho" width="160" height="160" />
         }
         <figcaption>
-          Escanear en obra para abrir la recepción
+          {{ m.qrContent }}<br />Escanear en obra para abrir la recepción
           @if (simulated) {
             <br /><em>QR simulado (vista previa)</em>
           }
@@ -32,21 +32,22 @@
     <section class="grid">
       <div>
         <h2>Origen</h2>
-        <p>{{ m.warehouseName ?? '-' }}</p>
-        @if (m.warehouseAddress) {
-          <p class="muted">{{ m.warehouseAddress }}</p>
+        <p>{{ m.warehouse.name }}</p>
+        @if (m.warehouse.address) {
+          <p class="muted">{{ m.warehouse.address }}</p>
         }
       </div>
       <div>
         <h2>Destino</h2>
-        <p>{{ m.worksiteName ?? '-' }}</p>
-        @if (m.worksiteAddress) {
-          <p class="muted">{{ m.worksiteAddress }}</p>
+        <p>{{ m.worksite.name }}</p>
+        @if (m.worksite.address) {
+          <p class="muted">{{ m.worksite.address }}</p>
         }
       </div>
       <div>
         <h2>Pedido</h2>
-        <p>{{ m.orderId }}</p>
+        <p>{{ m.order.id }}</p>
+        <p class="muted">{{ m.order.placedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
       </div>
       <div>
         <h2>Salida</h2>
@@ -61,11 +62,11 @@
           <tr><th>#</th><th>SKU</th><th>Material</th><th class="num">Cantidad</th><th>Unidad</th></tr>
         </thead>
         <tbody>
-          @for (line of m.lines; track line.id; let i = $index) {
+          @for (line of m.lines; track line.materialId; let i = $index) {
             <tr>
               <td>{{ i + 1 }}</td>
               <td>{{ line.sku }}</td>
-              <td>{{ line.materialName ?? '-' }}</td>
+              <td>{{ line.name }}</td>
               <td class="num">{{ line.quantity | number: '1.0-3' }}</td>
               <td>{{ line.unit }}</td>
             </tr>
@@ -78,8 +79,8 @@
       <div>
         <h2>Transportista</h2>
         @if (m.carrier; as c) {
-          <p>{{ c.carrierName }}</p>
-          <p>Documento: {{ c.carrierDocument }}</p>
+          <p>{{ c.name }}</p>
+          <p>Documento: {{ c.document }}</p>
           <p>Placa: {{ c.plate }}</p>
         } @else {
           <p class="muted">Sin registrar</p>

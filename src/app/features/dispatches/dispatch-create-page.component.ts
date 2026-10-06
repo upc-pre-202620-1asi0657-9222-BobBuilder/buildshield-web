@@ -5,8 +5,9 @@ import {Router, RouterLink} from '@angular/router';
 
 import {LogisticsApi} from '../../core/api/logistics-api';
 import {OrdersApiService} from '../../core/api/orders-api.service';
-import {toApiError} from '../../core/http/api-error';
+import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {Order, OrderLine, orderLineKey} from '../../core/models/order';
+import {generateUuid} from '../../core/util/uuid';
 
 interface DraftLine {
   readonly line: OrderLine;
@@ -81,6 +82,10 @@ export class DispatchCreatePageComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
 
+  /** POST /dispatches exige Idempotency-Key; se reusa si el usuario reintenta lo mismo. */
+  private idempotencyKey = generateUuid();
+  private lastPayload = '';
+
   ngOnInit(): void {
     if (!this.orderId()) {
       this.error.set('Elige un pedido aprobado desde la bandeja de despachos.');
@@ -114,13 +119,23 @@ export class DispatchCreatePageComponent implements OnInit {
       this.error.set('Indica al menos una cantidad mayor que cero.');
       return;
     }
+    const request = {orderId: order.id, lines};
+    const payload = JSON.stringify(request);
+    if (payload !== this.lastPayload) {
+      this.idempotencyKey = generateUuid();
+      this.lastPayload = payload;
+    }
     this.saving.set(true);
     this.error.set(null);
-    this.logistics.createDispatch({orderId: order.id, lines}).subscribe({
+    this.logistics.createDispatch(request, this.idempotencyKey).subscribe({
       next: (dispatch) => void this.router.navigate(['/dispatches', dispatch.id]),
       error: (err: unknown) => {
+        const apiError = toApiError(err);
         this.saving.set(false);
-        this.error.set(toApiError(err).message);
+        this.error.set(apiError.message);
+        if (!shouldReuseIdempotencyKey(apiError)) {
+          this.lastPayload = '';
+        }
       },
     });
   }

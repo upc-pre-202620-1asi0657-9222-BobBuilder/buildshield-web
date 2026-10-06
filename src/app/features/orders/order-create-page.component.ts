@@ -5,7 +5,7 @@ import {forkJoin} from 'rxjs';
 
 import {OrdersApiService} from '../../core/api/orders-api.service';
 import {OrganizationApiService} from '../../core/api/organization-api.service';
-import {toApiError} from '../../core/http/api-error';
+import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {Material, Warehouse, Worksite} from '../../core/models/organization';
 import {generateUuid} from '../../core/util/uuid';
 import {todayIso} from '../../shared/validators';
@@ -126,8 +126,12 @@ export class OrderCreatePageComponent implements OnInit {
       .subscribe({
         next: (order) => void this.router.navigate(['/orders', order.id]),
         error: (err: unknown) => {
+          const apiError = toApiError(err);
           this.saving.set(false);
-          this.error.set(toApiError(err).message);
+          this.error.set(apiError.message);
+          if (!shouldReuseIdempotencyKey(apiError)) {
+            this.idempotencyKey = generateUuid();
+          }
         },
       });
   }

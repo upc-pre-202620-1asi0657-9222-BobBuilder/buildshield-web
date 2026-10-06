@@ -14,8 +14,9 @@
   @if (dispatch(); as d) {
     <div class="card">
       <p>
-        <strong>{{ d.code ?? d.id.slice(0, 8) }}</strong>
+        <strong>{{ d.manifestCode }}</strong>
         <span [class]="'badge ' + badge(d.status)">{{ label(d) }}</span>
+        <span class="badge">{{ typeLabels[d.type] ?? d.type }}</span>
       </p>
       <p><strong>Pedido:</strong> <a [routerLink]="['/orders', d.orderId]">{{ d.orderId.slice(0, 8) }}</a></p>
       @if (d.departedAt) {
@@ -26,9 +27,9 @@
         <tbody>
           @for (line of d.lines; track line.id) {
             <tr>
-              <td data-label="SKU">{{ line.sku }}</td>
-              <td data-label="Material">{{ line.materialName ?? '-' }}</td>
-              <td data-label="Cantidad" class="num">{{ line.quantity | number: '1.0-3' }} {{ line.unit }}</td>
+              <td data-label="SKU">{{ material(line.materialId)?.sku ?? '-' }}</td>
+              <td data-label="Material">{{ material(line.materialId)?.name ?? '-' }}</td>
+              <td data-label="Cantidad" class="num">{{ line.quantity | number: '1.0-3' }} {{ material(line.materialId)?.unit }}</td>
             </tr>
           }
         </tbody>
@@ -47,17 +48,17 @@
             <input id="carrierName" formControlName="carrierName" />
           </div>
           <div class="field">
-            <label for="carrierDocument">DNI o RUC</label>
-            <input id="carrierDocument" formControlName="carrierDocument" inputmode="numeric" maxlength="11" />
+            <label for="carrierDocument">DNI, RUC o carné</label>
+            <input id="carrierDocument" formControlName="carrierDocument" maxlength="20" />
             @if (carrierForm.controls.carrierDocument.touched && carrierForm.controls.carrierDocument.invalid) {
-              <span class="error">8 dígitos (DNI) u 11 dígitos (RUC).</span>
+              <span class="error">De 8 a 20 letras o dígitos.</span>
             }
           </div>
           <div class="field">
             <label for="plate">Placa</label>
-            <input id="plate" formControlName="plate" maxlength="7" placeholder="ABC-123" />
+            <input id="plate" formControlName="plate" maxlength="10" placeholder="ABC-123" />
             @if (carrierForm.controls.plate.touched && carrierForm.controls.plate.invalid) {
-              <span class="error">Formato de placa: ABC-123.</span>
+              <span class="error">Placa de 5 a 10 caracteres, por ejemplo ABC-123.</span>
             }
           </div>
         </div>

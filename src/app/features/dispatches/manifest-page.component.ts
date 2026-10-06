@@ -3,7 +3,11 @@ import {Component, OnInit, computed, inject, input, signal} from '@angular/core'
 
 import {LogisticsApi} from '../../core/api/logistics-api';
 import {toApiError} from '../../core/http/api-error';
-import {DispatchManifest, dispatchStatusLabel} from '../../core/models/logistics';
+import {
+  DISPATCH_TYPE_LABELS,
+  DispatchManifest,
+  dispatchStatusLabel,
+} from '../../core/models/logistics';
 
 /** T32: manifiesto imprimible del despacho con su QR (hoja A4, estilos de impresión). */
 @Component({
@@ -24,6 +28,9 @@ export class ManifestPageComponent implements OnInit {
   protected readonly manifest = signal<DispatchManifest | null>(null);
   protected readonly error = signal<string | null>(null);
   protected readonly label = dispatchStatusLabel;
+  protected typeLabel(type: string): string {
+    return DISPATCH_TYPE_LABELS[type] ?? type;
+  }
   protected readonly qrSrc = computed(() => {
     const m = this.manifest();
     if (!m?.qrCodePngBase64) {
@@ -55,6 +62,6 @@ export class ManifestPageComponent implements OnInit {
     if (!w) {
       return null;
     }
-    return w.netKg ?? w.grossKg - w.tareKg;
+    return w.netKg;
   }
 }

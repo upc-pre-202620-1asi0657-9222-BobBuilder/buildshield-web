@@ -31,7 +31,7 @@ import {nameIndex} from '../../shared/status';
         @for (d of dispatches(); track d.id) {
           <li>
             <a class="dispatch-card" [routerLink]="['/reception', d.id]">
-              <span class="code">{{ d.code ?? d.id.slice(0, 8) }}</span>
+              <span class="code">{{ d.manifestCode }}</span>
               <span class="where">{{ (d.worksiteId && worksiteNames().get(d.worksiteId)) || 'Obra asignada' }}</span>
               <span class="meta">
                 {{ d.lines.length }} {{ d.lines.length === 1 ? 'material' : 'materiales' }}

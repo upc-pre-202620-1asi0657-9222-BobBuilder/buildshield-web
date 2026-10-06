@@ -5,8 +5,10 @@ import {RouterLink} from '@angular/router';
 import {Observable} from 'rxjs';
 
 import {LogisticsApi} from '../../core/api/logistics-api';
-import {toApiError} from '../../core/http/api-error';
-import {Dispatch, dispatchStatusLabel} from '../../core/models/logistics';
+import {OrganizationApiService} from '../../core/api/organization-api.service';
+import {Material} from '../../core/models/organization';
+import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
+import {DISPATCH_TYPE_LABELS, Dispatch, dispatchStatusLabel} from '../../core/models/logistics';
 import {generateUuid} from '../../core/util/uuid';
 import {statusBadgeClass} from '../../shared/status';
 
@@ -23,6 +25,9 @@ export class DispatchDetailPageComponent implements OnInit {
 
   private readonly logistics = inject(LogisticsApi);
   private readonly fb = inject(FormBuilder).nonNullable;
+  private readonly orgApi = inject(OrganizationApiService);
+
+  protected readonly materials = signal(new Map<string, Material>());
 
   protected readonly dispatch = signal<Dispatch | null>(null);
   protected readonly busy = signal(false);
@@ -30,11 +35,12 @@ export class DispatchDetailPageComponent implements OnInit {
   protected readonly success = signal<string | null>(null);
   protected readonly label = dispatchStatusLabel;
   protected readonly badge = statusBadgeClass;
+  protected readonly typeLabels = DISPATCH_TYPE_LABELS;
 
-  protected readonly preparing = computed(() => this.dispatch()?.status === 'PREPARING');
+  protected readonly preparing = computed(() => this.dispatch()?.status === 'PREPARED');
   protected readonly canDepart = computed(() => {
     const d = this.dispatch();
-    return !!d && d.status === 'PREPARING' && !!d.carrier && !!d.departureWeighing;
+    return !!d && d.status === 'PREPARED' && !!d.carrier && !!d.departureWeighing;
   });
 
   /** Se reusa si el usuario vuelve a pulsar «Despachar» tras un error. */
@@ -42,8 +48,8 @@ export class DispatchDetailPageComponent implements OnInit {
 
   protected readonly carrierForm = this.fb.group({
     carrierName: ['', [Validators.required, Validators.maxLength(150)]],
-    carrierDocument: ['', [Validators.required, Validators.pattern(/^(\d{8}|\d{11})$/)]],
-    plate: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]{3}-?[A-Za-z0-9]{3}$/)]],
+    carrierDocument: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]{8,20}$/)]],
+    plate: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9-]{5,10}$/)]],
   });
 
   protected readonly weighingForm = this.fb.group({
@@ -57,6 +63,14 @@ export class DispatchDetailPageComponent implements OnInit {
       next: (d) => this.apply(d),
       error: (err: unknown) => this.error.set(toApiError(err).message),
     });
+    this.orgApi.listMaterials().subscribe({
+      next: (list) => this.materials.set(new Map(list.map((m) => [m.id, m]))),
+      error: () => this.materials.set(new Map()),
+    });
+  }
+
+  protected material(id: string): Material | undefined {
+    return this.materials().get(id);
   }
 
   protected saveCarrier(): void {
@@ -108,8 +122,12 @@ export class DispatchDetailPageComponent implements OnInit {
         this.apply(d);
       },
       error: (err: unknown) => {
+        const apiError = toApiError(err);
         this.busy.set(false);
-        this.error.set(toApiError(err).message);
+        this.error.set(apiError.message);
+        if (!shouldReuseIdempotencyKey(apiError)) {
+          this.departKey = generateUuid();
+        }
       },
     });
   }
@@ -117,7 +135,11 @@ export class DispatchDetailPageComponent implements OnInit {
   private apply(dispatch: Dispatch): void {
     this.dispatch.set(dispatch);
     if (dispatch.carrier) {
-      this.carrierForm.reset(dispatch.carrier);
+      this.carrierForm.reset({
+        carrierName: dispatch.carrier.name,
+        carrierDocument: dispatch.carrier.document,
+        plate: dispatch.carrier.plate,
+      });
     }
     if (dispatch.departureWeighing) {
       this.weighingForm.reset({
@@ -126,7 +148,7 @@ export class DispatchDetailPageComponent implements OnInit {
         ticketPhotoUrl: dispatch.departureWeighing.ticketPhotoUrl ?? '',
       });
     }
-    if (dispatch.status !== 'PREPARING') {
+    if (dispatch.status !== 'PREPARED') {
       this.carrierForm.disable();
       this.weighingForm.disable();
     }

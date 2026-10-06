@@ -86,7 +86,7 @@
         <ul class="list-plain">
           @for (d of dispatches(); track d.id) {
             <li style="padding: 6px 0">
-              {{ d.code ?? d.id.slice(0, 8) }} ·
+              {{ d.manifestCode }} ·
               <span class="badge" [class]="'badge ' + badge(d.status)">{{ dispatchLabel(d) }}</span>
             </li>
           }
