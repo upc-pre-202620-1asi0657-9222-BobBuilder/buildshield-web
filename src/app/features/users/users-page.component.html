@@ -1,0 +1,114 @@
+<section class="page">
+  <div class="page-header">
+    <h1>Usuarios</h1>
+  </div>
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+  @if (success()) {
+    <p class="alert alert-success" role="status">{{ success() }}</p>
+  }
+
+  <div class="card">
+    <h2>Nuevo usuario</h2>
+    <form [formGroup]="form" (ngSubmit)="createUser()" novalidate>
+      <div class="form-grid">
+        <div class="field">
+          <label for="fullName">Nombre completo</label>
+          <input id="fullName" formControlName="fullName" />
+        </div>
+        <div class="field">
+          <label for="email">Correo</label>
+          <input id="email" type="email" formControlName="email" />
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <span class="error">Ingresa un correo válido.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="role">Rol</label>
+          <select id="role" formControlName="role">
+            @for (role of roles; track role) {
+              <option [value]="role">{{ roleLabels[role] }}</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="password">Contraseña inicial</label>
+          <input id="password" type="password" formControlName="password" autocomplete="new-password" />
+          <span class="hint">{{ passwordHint }}</span>
+          @if (form.controls.password.touched && form.controls.password.invalid) {
+            <span class="error">La contraseña no cumple la regla.</span>
+          }
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">Crear usuario</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Asignar sede a un encargado</h2>
+    <form [formGroup]="assignForm" (ngSubmit)="assign()" novalidate>
+      <div class="form-grid">
+        <div class="field">
+          <label for="assignUser">Encargado</label>
+          <select id="assignUser" formControlName="userId">
+            <option value="">Selecciona…</option>
+            @for (user of managers(); track user.id) {
+              <option [value]="user.id">{{ user.fullName }} ({{ roleLabels[user.role] }})</option>
+            }
+          </select>
+        </div>
+        <div class="field">
+          <label for="assignSite">Obra o almacén</label>
+          <select id="assignSite" formControlName="siteId">
+            <option value="">Selecciona…</option>
+            @for (site of siteOptionsFor(assignForm.controls.userId.value); track site.id) {
+              <option [value]="site.id">{{ site.name }}</option>
+            }
+          </select>
+          <span class="hint">El encargado de obra se asigna a obras; el de almacén, a almacenes.</span>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit" [disabled]="saving()">Asignar</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Usuarios de la organización</h2>
+    @if (loading()) {
+      <p class="muted">Cargando…</p>
+    } @else {
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Correo</th>
+            <th>Rol</th>
+            <th>Sedes</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of users(); track user.id) {
+            <tr>
+              <td data-label="Nombre">{{ user.fullName }}</td>
+              <td data-label="Correo">{{ user.email }}</td>
+              <td data-label="Rol">{{ roleLabels[user.role] }}</td>
+              <td data-label="Sedes">{{ user.role === 'ADMINISTRATOR' ? 'Todas' : assignmentsOf(user.id) }}</td>
+              <td data-label="Estado">
+                <span class="badge" [class.badge-ok]="user.active">{{ user.active ? 'Activo' : 'Inactivo' }}</span>
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="5" class="muted">Aún no hay usuarios.</td></tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</section>
