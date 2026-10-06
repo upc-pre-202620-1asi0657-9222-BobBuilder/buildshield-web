@@ -1,0 +1,312 @@
+// Estilos globales de BuildShield: mobile-first, objetivos táctiles de 48 px (RNF21).
+
+:root {
+  --bs-color-primary: #0b5cad;
+  --bs-color-primary-dark: #08457f;
+  --bs-color-accent: #f2a900;
+  --bs-color-bg: #f4f6f8;
+  --bs-color-surface: #ffffff;
+  --bs-color-text: #1c2430;
+  --bs-color-muted: #5b6676;
+  --bs-color-border: #d5dbe3;
+  --bs-color-success: #1d7a46;
+  --bs-color-success-bg: #e3f4ea;
+  --bs-color-danger: #b42318;
+  --bs-color-danger-bg: #fdecea;
+  --bs-color-warning: #8a5a00;
+  --bs-color-warning-bg: #fff4d6;
+  --bs-radius: 10px;
+  --bs-touch: 48px;
+  --bs-gap: 16px;
+  --bs-font: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bs-color-bg);
+  color: var(--bs-color-text);
+  font-family: var(--bs-font);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0 0 12px;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 0 0 12px;
+}
+
+a {
+  color: var(--bs-color-primary);
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: var(--bs-gap);
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: var(--bs-gap);
+}
+
+.card {
+  background: var(--bs-color-surface);
+  border: 1px solid var(--bs-color-border);
+  border-radius: var(--bs-radius);
+  padding: var(--bs-gap);
+  margin-bottom: var(--bs-gap);
+}
+
+.muted {
+  color: var(--bs-color-muted);
+}
+
+// Botones -----------------------------------------------------------------
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--bs-touch);
+  min-width: var(--bs-touch);
+  padding: 0 20px;
+  border: 1px solid var(--bs-color-primary);
+  border-radius: var(--bs-radius);
+  background: var(--bs-color-surface);
+  color: var(--bs-color-primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &.btn-primary {
+    background: var(--bs-color-primary);
+    color: #fff;
+
+    &:hover:not(:disabled) {
+      background: var(--bs-color-primary-dark);
+    }
+  }
+
+  &.btn-danger {
+    border-color: var(--bs-color-danger);
+    color: var(--bs-color-danger);
+  }
+
+  &.btn-block {
+    width: 100%;
+  }
+}
+
+// Formularios -------------------------------------------------------------
+
+.form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 720px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .full {
+    grid-column: 1 / -1;
+  }
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  label {
+    font-weight: 600;
+    font-size: 0.92rem;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: var(--bs-touch);
+    padding: 10px 12px;
+    border: 1px solid var(--bs-color-border);
+    border-radius: var(--bs-radius);
+    font: inherit;
+    background: #fff;
+    color: inherit;
+
+    &:focus {
+      outline: 2px solid var(--bs-color-primary);
+      outline-offset: 1px;
+    }
+
+    &.ng-invalid.ng-touched {
+      border-color: var(--bs-color-danger);
+    }
+  }
+
+  .hint {
+    font-size: 0.82rem;
+    color: var(--bs-color-muted);
+  }
+
+  .error {
+    font-size: 0.85rem;
+    color: var(--bs-color-danger);
+  }
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: var(--bs-gap);
+}
+
+// Avisos ------------------------------------------------------------------
+
+.alert {
+  padding: 12px 14px;
+  border-radius: var(--bs-radius);
+  margin-bottom: var(--bs-gap);
+
+  &.alert-error {
+    background: var(--bs-color-danger-bg);
+    color: var(--bs-color-danger);
+  }
+
+  &.alert-success {
+    background: var(--bs-color-success-bg);
+    color: var(--bs-color-success);
+  }
+
+  &.alert-warning {
+    background: var(--bs-color-warning-bg);
+    color: var(--bs-color-warning);
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: #e8edf3;
+  color: var(--bs-color-text);
+  white-space: nowrap;
+
+  &.badge-ok {
+    background: var(--bs-color-success-bg);
+    color: var(--bs-color-success);
+  }
+
+  &.badge-bad {
+    background: var(--bs-color-danger-bg);
+    color: var(--bs-color-danger);
+  }
+
+  &.badge-warn {
+    background: var(--bs-color-warning-bg);
+    color: var(--bs-color-warning);
+  }
+}
+
+// Tablas: se vuelven tarjetas en pantallas angostas -----------------------
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--bs-color-surface);
+
+  th,
+  td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--bs-color-border);
+    vertical-align: middle;
+  }
+
+  th {
+    font-size: 0.85rem;
+    color: var(--bs-color-muted);
+    font-weight: 600;
+  }
+
+  .num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 719px) {
+    thead {
+      display: none;
+    }
+
+    tr {
+      display: block;
+      border: 1px solid var(--bs-color-border);
+      border-radius: var(--bs-radius);
+      margin-bottom: 12px;
+      padding: 6px 0;
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: none;
+      padding: 6px 12px;
+
+      &::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--bs-color-muted);
+      }
+
+      &.num {
+        text-align: right;
+      }
+    }
+  }
+}
+
+.list-plain {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: #fff;
+  }
+}
