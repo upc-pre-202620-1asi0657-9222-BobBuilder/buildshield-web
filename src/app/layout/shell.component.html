@@ -1,0 +1,39 @@
+<header class="topbar no-print">
+  <a class="brand" routerLink="/">Build<strong>Shield</strong></a>
+  <span class="role">{{ roleLabel() }}</span>
+  <button
+    type="button"
+    class="menu-toggle"
+    [attr.aria-expanded]="menuOpen()"
+    aria-controls="main-nav"
+    (click)="toggleMenu()"
+  >
+    Menú
+  </button>
+</header>
+
+<nav id="main-nav" class="nav no-print" [class.open]="menuOpen()" aria-label="Navegación principal">
+  <ul>
+    @for (item of navItems(); track item.path) {
+      <li>
+        <a [routerLink]="item.path" routerLinkActive="active" (click)="menuOpen.set(false)">
+          {{ item.label }}
+        </a>
+      </li>
+    }
+    <li>
+      <button type="button" class="sign-out" (click)="signOut()">Cerrar sesión</button>
+    </li>
+  </ul>
+</nav>
+
+@if (simulated) {
+  <p class="sim-banner no-print" role="status">
+    Modo simulado: despachos y recepciones se guardan en este navegador hasta que el backend del
+    Sprint 2 esté disponible.
+  </p>
+}
+
+<main>
+  <router-outlet />
+</main>
