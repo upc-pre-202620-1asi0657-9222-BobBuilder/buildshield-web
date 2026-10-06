@@ -110,6 +110,14 @@ src/
 └── styles.scss         tokens y estilos globales
 ```
 
+## Diseño
+
+La interfaz sigue el tema «Señal de Obra»: asfalto, concreto y amarillo de
+seguridad, con Big Shoulders Display para rótulos e Instrument Sans para el texto.
+La guía completa (paleta, tipografía, componentes, accesibilidad y redacción) está
+en [docs/style-guide.md](docs/style-guide.md) y el logotipo en `public/brand/`
+(filosofía en [docs/brand/filosofia-logo.md](docs/brand/filosofia-logo.md)).
+
 ## Convenciones
 
 - Código e identificadores en inglés; textos de la interfaz y documentación en español.
