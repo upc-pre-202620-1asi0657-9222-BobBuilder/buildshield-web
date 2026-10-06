@@ -8,6 +8,7 @@ import {OrdersApiService} from '../../core/api/orders-api.service';
 import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {Order, OrderLine, orderLineKey} from '../../core/models/order';
 import {generateUuid} from '../../core/util/uuid';
+import {IconComponent} from '../../shared/icon.component';
 
 interface DraftLine {
   readonly line: OrderLine;
@@ -18,55 +19,95 @@ interface DraftLine {
 @Component({
   selector: 'app-dispatch-create-page',
   standalone: true,
-  imports: [FormsModule, RouterLink, DecimalPipe],
+  imports: [FormsModule, RouterLink, DecimalPipe, IconComponent],
   template: `
     <section class="page">
       <div class="page-header">
-        <h1>Nuevo despacho</h1>
-        <a class="btn" routerLink="/dispatches">Volver</a>
+        <div>
+          <p class="eyebrow muted">Nuevo despacho</p>
+          <h1 class="code-title">{{ order() ? 'Pedido ' + order()!.id.slice(0, 8) : 'Nuevo despacho' }}</h1>
+        </div>
+        <div class="actions">
+          <a class="btn btn-ghost" routerLink="/dispatches">
+            <app-icon name="back" />
+            Despachos
+          </a>
+        </div>
       </div>
       @if (error()) {
         <p class="alert alert-error" role="alert">{{ error() }}</p>
       }
       @if (order(); as o) {
+        <p class="lead">
+          Indica cuánto sale en este camión. Ya viene todo lo pendiente; baja la cantidad si envías solo una parte.
+        </p>
         <div class="card">
-          <p class="muted">Pedido {{ o.id.slice(0, 8) }}. Por defecto se despacha todo lo pendiente.</p>
-          <table class="table">
-            <thead>
-              <tr><th>SKU</th><th class="num">Pendiente</th><th>Despachar</th></tr>
-            </thead>
-            <tbody>
-              @for (d of drafts(); track d.line.materialId) {
-                <tr>
-                  <td data-label="SKU">{{ d.line.sku }} <span class="muted">{{ d.line.unit }}</span></td>
-                  <td data-label="Pendiente" class="num">{{ d.line.pending | number: '1.0-3' }}</td>
-                  <td data-label="Despachar">
-                    <div class="field">
-                      <input
-                        type="number"
-                        inputmode="decimal"
-                        min="0"
-                        [max]="d.line.pending"
-                        step="0.001"
-                        [(ngModel)]="d.quantity"
-                        [attr.aria-label]="'Cantidad a despachar de ' + d.line.sku"
-                      />
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-          <div class="form-actions">
-            <button class="btn btn-primary" type="button" (click)="create()" [disabled]="saving()">
-              {{ saving() ? 'Creando…' : 'Crear despacho' }}
-            </button>
-          </div>
+          @if (drafts().length) {
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr><th>SKU</th><th>Unidad</th><th class="num">Pendiente</th><th class="qty-col">A despachar</th></tr>
+                </thead>
+                <tbody>
+                  @for (d of drafts(); track d.line.materialId) {
+                    <tr>
+                      <td data-label="SKU" class="code">{{ d.line.sku }}</td>
+                      <td data-label="Unidad">{{ d.line.unit }}</td>
+                      <td data-label="Pendiente" class="num">{{ d.line.pending | number: '1.0-3' }}</td>
+                      <td data-label="A despachar">
+                        <div class="field qty">
+                          <input
+                            type="number"
+                            inputmode="decimal"
+                            min="0"
+                            [max]="d.line.pending"
+                            step="0.001"
+                            [(ngModel)]="d.quantity"
+                            [attr.aria-label]="'Cantidad a despachar de ' + d.line.sku"
+                          />
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-primary" type="button" (click)="create()" [disabled]="saving()">
+                <app-icon name="truck" />
+                {{ saving() ? 'Preparando despacho…' : 'Crear despacho' }}
+              </button>
+            </div>
+          } @else {
+            <div class="empty">
+              <strong>Este pedido no tiene pendientes</strong>
+              <p>Todo lo pedido ya salió en otros despachos.</p>
+              <a class="btn" [routerLink]="['/orders', o.id]">Ver pedido</a>
+            </div>
+          }
         </div>
       } @else if (!error()) {
-        <p class="muted">Cargando…</p>
+        <p class="loading">Cargando pedido…</p>
+      } @else if (!orderId()) {
+        <a class="btn" routerLink="/dispatches">
+          <app-icon name="back" />
+          Ir a la bandeja de despachos
+        </a>
       }
     </section>
+  `,
+  styles: `
+    .qty-col {
+      width: 180px;
+    }
+    .qty input {
+      text-align: right;
+    }
+    @media (max-width: 719px) {
+      .qty {
+        width: 150px;
+      }
+    }
   `,
 })
 export class DispatchCreatePageComponent implements OnInit {

@@ -12,13 +12,19 @@ import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {Dispatch, dispatchStatusLabel} from '../../core/models/logistics';
 import {DISPATCHABLE_ORDER_STATUSES, Order} from '../../core/models/order';
 import {generateUuid} from '../../core/util/uuid';
+import {IconComponent} from '../../shared/icon.component';
 import {nameIndex, orderStatusLabel, statusBadgeClass} from '../../shared/status';
 
 /** T19: detalle del pedido con estado; el almacén lo aprueba, rechaza o despacha. */
 @Component({
   selector: 'app-order-detail-page',
   standalone: true,
-  imports: [RouterLink, DatePipe, DecimalPipe, FormsModule],
+  imports: [RouterLink, DatePipe, DecimalPipe, FormsModule, IconComponent],
+  styles: `
+    .reject {
+      margin-top: 16px;
+    }
+  `,
   templateUrl: './order-detail-page.component.html',
 })
 export class OrderDetailPageComponent implements OnInit {
@@ -47,6 +53,10 @@ export class OrderDetailPageComponent implements OnInit {
     () =>
       this.auth.hasAnyRole(['ADMINISTRATOR', 'WAREHOUSE_MANAGER']) &&
       this.order()?.status === 'REGISTERED',
+  );
+  /** Solo el almacén y el administrador abren el detalle de un despacho. */
+  protected readonly isWarehouse = computed(() =>
+    this.auth.hasAnyRole(['ADMINISTRATOR', 'WAREHOUSE_MANAGER']),
   );
   protected readonly canDispatch = computed(() => {
     const order = this.order();

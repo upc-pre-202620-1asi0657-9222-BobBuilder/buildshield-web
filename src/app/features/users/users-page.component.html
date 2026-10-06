@@ -1,7 +1,16 @@
 <section class="page">
   <div class="page-header">
     <h1>Usuarios</h1>
+    <div class="actions">
+      <button class="btn" type="button" (click)="focusField('fullName')">
+        <app-icon name="plus" />
+        Nuevo usuario
+      </button>
+    </div>
   </div>
+  <p class="lead">
+    Personas de tu organización, su rol y las obras o almacenes que tienen a cargo.
+  </p>
 
   @if (error()) {
     <p class="alert alert-error" role="alert">{{ error() }}</p>
@@ -11,104 +20,149 @@
   }
 
   <div class="card">
+    <h2>Usuarios de la organización</h2>
+    @if (loading()) {
+      <p class="loading">Cargando usuarios…</p>
+    } @else if (users().length) {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Rol</th>
+              <th>Sedes</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (user of users(); track user.id) {
+              <tr>
+                <td data-label="Nombre"><strong>{{ user.fullName }}</strong></td>
+                <td data-label="Correo">{{ user.email }}</td>
+                <td data-label="Rol">{{ roleLabels[user.role] }}</td>
+                <td data-label="Sedes">{{ user.role === 'ADMINISTRATOR' ? 'Todas' : assignmentsOf(user.id) }}</td>
+                <td data-label="Estado">
+                  <span class="badge" [class.badge-ok]="user.active">{{ user.active ? 'Activo' : 'Inactivo' }}</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      <div class="empty">
+        <strong>Aún no hay usuarios</strong>
+        <p>Crea a los encargados de almacén y de obra para que empiecen a pedir y despachar.</p>
+        <button class="btn" type="button" (click)="focusField('fullName')">
+          <app-icon name="plus" />
+          Crear el primer usuario
+        </button>
+      </div>
+    }
+  </div>
+
+  <div class="card">
     <h2>Nuevo usuario</h2>
     <form [formGroup]="form" (ngSubmit)="createUser()" novalidate>
       <div class="form-grid">
         <div class="field">
           <label for="fullName">Nombre completo</label>
-          <input id="fullName" formControlName="fullName" />
+          <input
+            id="fullName"
+            formControlName="fullName"
+            maxlength="150"
+            autocomplete="off"
+            aria-describedby="fullNameError"
+          />
+          @if (form.controls.fullName.touched && form.controls.fullName.invalid) {
+            <span class="error" id="fullNameError">Escribe el nombre y apellido.</span>
+          }
         </div>
         <div class="field">
           <label for="email">Correo</label>
-          <input id="email" type="email" formControlName="email" />
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            inputmode="email"
+            autocomplete="off"
+            autocapitalize="off"
+            spellcheck="false"
+            aria-describedby="emailHint emailError"
+          />
+          <span class="hint" id="emailHint">Con este correo iniciará sesión.</span>
           @if (form.controls.email.touched && form.controls.email.invalid) {
-            <span class="error">Ingresa un correo válido.</span>
+            <span class="error" id="emailError">Ingresa un correo válido, por ejemplo nombre&#64;empresa.pe.</span>
           }
         </div>
         <div class="field">
           <label for="role">Rol</label>
-          <select id="role" formControlName="role">
+          <select id="role" formControlName="role" aria-describedby="roleHint">
             @for (role of roles; track role) {
               <option [value]="role">{{ roleLabels[role] }}</option>
             }
           </select>
+          <span class="hint" id="roleHint">Define qué secciones ve y qué puede hacer.</span>
         </div>
         <div class="field">
           <label for="password">Contraseña inicial</label>
-          <input id="password" type="password" formControlName="password" autocomplete="new-password" />
-          <span class="hint">{{ passwordHint }}</span>
+          <input
+            id="password"
+            type="password"
+            formControlName="password"
+            autocomplete="new-password"
+            aria-describedby="passwordHint passwordError"
+          />
+          <span class="hint" id="passwordHint">{{ passwordHint }} Compártela con la persona por un canal privado.</span>
           @if (form.controls.password.touched && form.controls.password.invalid) {
-            <span class="error">La contraseña no cumple la regla.</span>
+            <span class="error" id="passwordError">La contraseña no cumple la regla de arriba.</span>
           }
         </div>
       </div>
       <div class="form-actions">
-        <button class="btn btn-primary" type="submit" [disabled]="saving()">Crear usuario</button>
+        <button class="btn btn-primary" type="submit" [disabled]="saving()">
+          <app-icon name="check" />
+          {{ saving() ? 'Creando…' : 'Crear usuario' }}
+        </button>
       </div>
     </form>
   </div>
 
   <div class="card">
     <h2>Asignar sede a un encargado</h2>
+    <p class="muted">Cada encargado solo ve los pedidos y despachos de las sedes que tiene asignadas.</p>
     <form [formGroup]="assignForm" (ngSubmit)="assign()" novalidate>
       <div class="form-grid">
         <div class="field">
           <label for="assignUser">Encargado</label>
-          <select id="assignUser" formControlName="userId">
-            <option value="">Selecciona…</option>
+          <select id="assignUser" formControlName="userId" aria-describedby="assignUserError">
+            <option value="">Elige al encargado</option>
             @for (user of managers(); track user.id) {
               <option [value]="user.id">{{ user.fullName }} ({{ roleLabels[user.role] }})</option>
             }
           </select>
+          @if (assignForm.controls.userId.touched && assignForm.controls.userId.invalid) {
+            <span class="error" id="assignUserError">Elige al encargado.</span>
+          }
         </div>
         <div class="field">
           <label for="assignSite">Obra o almacén</label>
-          <select id="assignSite" formControlName="siteId">
-            <option value="">Selecciona…</option>
+          <select id="assignSite" formControlName="siteId" aria-describedby="assignSiteHint assignSiteError">
+            <option value="">{{ assignForm.controls.userId.value ? 'Elige la sede' : 'Primero elige al encargado' }}</option>
             @for (site of siteOptionsFor(assignForm.controls.userId.value); track site.id) {
               <option [value]="site.id">{{ site.name }}</option>
             }
           </select>
-          <span class="hint">El encargado de obra se asigna a obras; el de almacén, a almacenes.</span>
+          <span class="hint" id="assignSiteHint">El encargado de obra se asigna a obras; el de almacén, a almacenes.</span>
+          @if (assignForm.controls.siteId.touched && assignForm.controls.siteId.invalid) {
+            <span class="error" id="assignSiteError">Elige la obra o el almacén.</span>
+          }
         </div>
       </div>
       <div class="form-actions">
-        <button class="btn" type="submit" [disabled]="saving()">Asignar</button>
+        <button class="btn" type="submit" [disabled]="saving()">Asignar sede</button>
       </div>
     </form>
-  </div>
-
-  <div class="card">
-    <h2>Usuarios de la organización</h2>
-    @if (loading()) {
-      <p class="muted">Cargando…</p>
-    } @else {
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Correo</th>
-            <th>Rol</th>
-            <th>Sedes</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (user of users(); track user.id) {
-            <tr>
-              <td data-label="Nombre">{{ user.fullName }}</td>
-              <td data-label="Correo">{{ user.email }}</td>
-              <td data-label="Rol">{{ roleLabels[user.role] }}</td>
-              <td data-label="Sedes">{{ user.role === 'ADMINISTRATOR' ? 'Todas' : assignmentsOf(user.id) }}</td>
-              <td data-label="Estado">
-                <span class="badge" [class.badge-ok]="user.active">{{ user.active ? 'Activo' : 'Inactivo' }}</span>
-              </td>
-            </tr>
-          } @empty {
-            <tr><td colspan="5" class="muted">Aún no hay usuarios.</td></tr>
-          }
-        </tbody>
-      </table>
-    }
   </div>
 </section>

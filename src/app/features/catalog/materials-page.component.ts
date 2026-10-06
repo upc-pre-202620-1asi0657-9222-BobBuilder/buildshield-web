@@ -6,18 +6,73 @@ import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {AuthService} from '../../core/auth/auth.service';
 import {toApiError} from '../../core/http/api-error';
 import {Material, UNITS, UNIT_LABELS, UnitOfMeasure} from '../../core/models/organization';
+import {IconComponent} from '../../shared/icon.component';
 
 /** T16: catálogo de materiales con SKU, unidad y tolerancia de merma (0 a 100). */
 @Component({
   selector: 'app-materials-page',
   standalone: true,
-  imports: [ReactiveFormsModule, DecimalPipe],
+  imports: [ReactiveFormsModule, DecimalPipe, IconComponent],
   template: `
     <section class="page">
-      <div class="page-header"><h1>Materiales</h1></div>
+      <div class="page-header">
+        <h1>Materiales</h1>
+        @if (canCreate()) {
+          <div class="actions">
+            <button class="btn" type="button" (click)="focusField('sku')">
+              <app-icon name="plus" />
+              Nuevo material
+            </button>
+          </div>
+        }
+      </div>
+      <p class="lead">
+        Catálogo de materiales con su SKU, unidad y la merma que se acepta al recibirlos en obra.
+      </p>
       @if (error()) {
         <p class="alert alert-error" role="alert">{{ error() }}</p>
       }
+
+      @if (loading()) {
+        <p class="loading">Cargando materiales…</p>
+      } @else if (materials().length) {
+        <div class="card">
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>SKU</th><th>Nombre</th><th>Unidad</th><th class="num">Tolerancia</th><th>Estado</th></tr>
+              </thead>
+              <tbody>
+                @for (m of materials(); track m.id) {
+                  <tr>
+                    <td data-label="SKU" class="code">{{ m.sku }}</td>
+                    <td data-label="Nombre">{{ m.name }}</td>
+                    <td data-label="Unidad">{{ unitLabels[m.unit] ?? m.unit }}</td>
+                    <td data-label="Tolerancia" class="num">{{ m.wasteTolerancePercent | number: '1.0-2' }} %</td>
+                    <td data-label="Estado">
+                      <span class="badge" [class.badge-ok]="m.active">{{ m.active ? 'Activo' : 'Inactivo' }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      } @else if (!error()) {
+        <div class="empty">
+          <strong>Aún no hay materiales</strong>
+          @if (canCreate()) {
+            <p>Registra los materiales que se piden y despachan, por ejemplo cemento o fierro.</p>
+            <button class="btn" type="button" (click)="focusField('sku')">
+              <app-icon name="plus" />
+              Registrar el primer material
+            </button>
+          } @else {
+            <p>El administrador todavía no registra materiales en el catálogo.</p>
+          }
+        </div>
+      }
+
       @if (canCreate()) {
         <div class="card">
           <h2>Nuevo material</h2>
@@ -25,12 +80,26 @@ import {Material, UNITS, UNIT_LABELS, UnitOfMeasure} from '../../core/models/org
             <div class="form-grid">
               <div class="field">
                 <label for="sku">SKU</label>
-                <input id="sku" formControlName="sku" maxlength="40" />
-                <span class="hint">Único en la organización, por ejemplo CEM-001.</span>
+                <input
+                  id="sku"
+                  formControlName="sku"
+                  maxlength="40"
+                  autocomplete="off"
+                  autocapitalize="characters"
+                  spellcheck="false"
+                  aria-describedby="skuHint skuError"
+                />
+                <span class="hint" id="skuHint">Código único en la organización, por ejemplo CEM-001.</span>
+                @if (form.controls.sku.touched && form.controls.sku.invalid) {
+                  <span class="error" id="skuError">Escribe el SKU, hasta 40 caracteres.</span>
+                }
               </div>
               <div class="field">
                 <label for="name">Nombre</label>
-                <input id="name" formControlName="name" />
+                <input id="name" formControlName="name" maxlength="150" autocomplete="off" aria-describedby="nameError" />
+                @if (form.controls.name.touched && form.controls.name.invalid) {
+                  <span class="error" id="nameError">Escribe el nombre del material.</span>
+                }
               </div>
               <div class="field">
                 <label for="unit">Unidad</label>
@@ -50,40 +119,25 @@ import {Material, UNITS, UNIT_LABELS, UnitOfMeasure} from '../../core/models/org
                   max="100"
                   step="0.01"
                   formControlName="wasteTolerancePercent"
+                  aria-describedby="toleranceHint toleranceError"
                 />
+                <span class="hint" id="toleranceHint">
+                  Pérdida aceptable al recibir. Si se pierde más, la recepción lo marca como merma.
+                </span>
                 @if (form.controls.wasteTolerancePercent.touched && form.controls.wasteTolerancePercent.invalid) {
-                  <span class="error">La tolerancia debe estar entre 0 y 100.</span>
+                  <span class="error" id="toleranceError">La tolerancia debe estar entre 0 y 100.</span>
                 }
               </div>
             </div>
             <div class="form-actions">
-              <button class="btn btn-primary" type="submit" [disabled]="saving()">Registrar material</button>
+              <button class="btn btn-primary" type="submit" [disabled]="saving()">
+                <app-icon name="check" />
+                {{ saving() ? 'Registrando…' : 'Registrar material' }}
+              </button>
             </div>
           </form>
         </div>
       }
-      <div class="card">
-        <table class="table">
-          <thead>
-            <tr><th>SKU</th><th>Nombre</th><th>Unidad</th><th class="num">Tolerancia</th><th>Estado</th></tr>
-          </thead>
-          <tbody>
-            @for (m of materials(); track m.id) {
-              <tr>
-                <td data-label="SKU">{{ m.sku }}</td>
-                <td data-label="Nombre">{{ m.name }}</td>
-                <td data-label="Unidad">{{ unitLabels[m.unit] ?? m.unit }}</td>
-                <td data-label="Tolerancia" class="num">{{ m.wasteTolerancePercent | number: '1.0-2' }} %</td>
-                <td data-label="Estado">
-                  <span class="badge" [class.badge-ok]="m.active">{{ m.active ? 'Activo' : 'Inactivo' }}</span>
-                </td>
-              </tr>
-            } @empty {
-              <tr><td colspan="5" class="muted">{{ loading() ? 'Cargando…' : 'No hay materiales registrados.' }}</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
     </section>
   `,
 })
@@ -108,6 +162,11 @@ export class MaterialsPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  /** Lleva el foco (y la vista) al primer campo del formulario de alta. */
+  protected focusField(id: string): void {
+    document.getElementById(id)?.focus();
   }
 
   protected create(): void {

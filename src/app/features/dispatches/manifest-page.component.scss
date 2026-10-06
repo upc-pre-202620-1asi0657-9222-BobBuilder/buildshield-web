@@ -1,12 +1,23 @@
+// Manifiesto imprimible: hoja A4 con aspecto de guía de remisión, en tinta
+// asfalto sobre blanco. Fuera del shell, así que todo usa tokens globales.
+
 :host {
   display: block;
   padding: 16px;
+  min-height: 100vh;
+  background: var(--bs-concreto);
 }
 
 .toolbar {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  max-width: 210mm;
+  margin: 0 auto 16px;
+}
+
+.sheet-msg {
   max-width: 210mm;
   margin: 0 auto 16px;
 }
@@ -14,103 +25,396 @@
 .sheet {
   max-width: 210mm;
   margin: 0 auto;
-  padding: 16px;
-  background: #fff;
-  border: 1px solid var(--bs-color-border);
-  color: #000;
+  padding: 28px 28px 20px;
+  background: var(--bs-losa);
+  border: 1px solid var(--bs-junta);
+  border-top: 8px solid var(--bs-asfalto);
+  border-radius: var(--bs-radius);
+  color: var(--bs-asfalto);
+  font-size: 0.9375rem;
+
+  @media (max-width: 599px) {
+    padding: 20px 16px 16px;
+  }
 }
+
+p {
+  margin: 0;
+}
+
+// Encabezado ---------------------------------------------------------------
 
 .head {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
-  gap: 16px;
-  border-bottom: 2px solid #000;
-  padding-bottom: 12px;
+  align-items: flex-start;
+  gap: 16px 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--bs-asfalto);
+}
+
+.head-main {
+  min-width: 0;
 }
 
 .brand {
-  margin: 0;
-  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+
+  img {
+    display: block;
+    width: 40px;
+    height: 40px;
+  }
+}
+
+.wordmark {
+  font-family: var(--bs-font-display);
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 h1 {
-  margin: 4px 0;
-  font-size: 1.4rem;
-}
-
-h2 {
-  margin: 12px 0 4px;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-p {
-  margin: 2px 0;
+  margin: 0;
+  font-family: var(--bs-font);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--bs-acero);
 }
 
 .code {
-  font-family: monospace;
-  font-size: 1rem;
+  margin: 2px 0 10px;
+  font-family: var(--bs-font-display);
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  overflow-wrap: anywhere;
+
+  @media (max-width: 599px) {
+    font-size: 2.25rem;
+  }
+}
+
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  display: inline-block;
+  padding: 2px 10px;
+  border: 1.5px solid var(--bs-asfalto);
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.tag-plain {
+  border-color: var(--bs-junta);
+  color: var(--bs-acero);
 }
 
 .qr {
   margin: 0;
+  width: 172px;
+  padding: 12px;
+  border: 1.5px solid var(--bs-asfalto);
+  border-radius: var(--bs-radius-control);
   text-align: center;
   font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--bs-acero);
 
   img {
     display: block;
-    width: 160px;
-    height: 160px;
+    width: 148px;
+    height: 148px;
     image-rendering: pixelated;
-    margin: 0 auto 4px;
+    margin: 0 auto 8px;
+  }
+
+  figcaption {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .qr-content {
+    color: var(--bs-asfalto);
+    font-weight: 600;
+    overflow-wrap: anywhere;
   }
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 8px 24px;
+// Bloques ------------------------------------------------------------------
+
+h2 {
+  margin: 0 0 6px;
+  font-family: var(--bs-font);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--bs-acero);
 }
+
+.section {
+  margin: 24px 0 8px;
+}
+
+.box {
+  padding: 12px 14px;
+  border: 1px solid var(--bs-junta);
+  border-radius: var(--bs-radius-control);
+  min-width: 0;
+}
+
+.strong {
+  font-weight: 600;
+  font-size: 1.0625rem;
+}
+
+.sub {
+  color: var(--bs-acero);
+  font-size: 0.875rem;
+}
+
+.ticket {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+
+.route {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 20px;
+
+  @media (max-width: 599px) {
+    grid-template-columns: 1fr;
+
+    .arrow {
+      display: none;
+    }
+  }
+}
+
+.arrow {
+  display: flex;
+  align-items: center;
+  color: var(--bs-acero);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0;
+  margin: 12px 0 0;
+  border: 1px solid var(--bs-junta);
+  border-radius: var(--bs-radius-control);
+
+  > div {
+    padding: 10px 14px;
+    border-right: 1px solid var(--bs-junta-suave);
+    min-width: 0;
+
+    &:last-child {
+      border-right: none;
+    }
+  }
+
+  dt {
+    font-size: 0.8125rem;
+    color: var(--bs-acero);
+  }
+
+  dd {
+    margin: 2px 0 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .mono {
+    font-size: 0.8125rem;
+    overflow-wrap: anywhere;
+  }
+}
+
+// Tabla de materiales --------------------------------------------------------
 
 .lines {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
 
   th,
   td {
-    border: 1px solid #555;
-    padding: 4px 6px;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--bs-junta);
     text-align: left;
+    vertical-align: middle;
+  }
+
+  thead th {
+    border-top: 2px solid var(--bs-asfalto);
+    border-bottom: 1.5px solid var(--bs-asfalto);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--bs-acero);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 2px solid var(--bs-asfalto);
   }
 
   .num {
     text-align: right;
+    font-weight: 600;
+  }
+
+  .idx {
+    width: 3em;
+    color: var(--bs-acero);
+  }
+
+  .sku {
+    font-family: var(--bs-font-display);
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .check {
+    width: 5.5em;
+    text-align: center;
+  }
+
+  @media (max-width: 599px) {
+    font-size: 0.875rem;
+
+    th,
+    td {
+      padding: 8px 6px;
+    }
+
+    .check {
+      display: none;
+    }
   }
 }
+
+.tick {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid var(--bs-asfalto);
+  border-radius: 3px;
+  vertical-align: middle;
+}
+
+// Transportista y pesaje -----------------------------------------------------
+
+.pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.mini {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin: 6px 0 0;
+
+  dt {
+    font-size: 0.8125rem;
+    color: var(--bs-acero);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.plate {
+  font-family: var(--bs-font-display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  letter-spacing: 0.06em;
+}
+
+.net {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--bs-junta);
+
+  span {
+    color: var(--bs-acero);
+    font-size: 0.875rem;
+  }
+
+  strong {
+    font-family: var(--bs-font-display);
+    font-size: 1.5rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Firmas y pie -------------------------------------------------------------
 
 .signatures {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-top: 48px;
-  font-size: 0.8rem;
-  text-align: center;
+  gap: 24px;
+  margin-top: 56px;
+  font-size: 0.875rem;
+  font-weight: 600;
 
   div {
-    border-top: 1px solid #000;
-    padding-top: 4px;
+    padding-top: 6px;
+    border-top: 1.5px solid var(--bs-asfalto);
+  }
+
+  span {
+    display: block;
+    font-weight: 400;
+    font-size: 0.8125rem;
+    color: var(--bs-acero);
+  }
+
+  @media (max-width: 599px) {
+    grid-template-columns: 1fr;
+    gap: 40px;
   }
 }
 
 .foot {
-  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 24px;
+  padding-top: 10px;
+  border-top: 1px solid var(--bs-junta);
   font-size: 0.75rem;
-  color: #444;
+  color: var(--bs-acero);
 }
+
+// Impresión ----------------------------------------------------------------
 
 @media print {
   @page {
@@ -120,15 +424,56 @@ p {
 
   :host {
     padding: 0;
+    min-height: 0;
+    background: none;
   }
 
   .sheet {
-    border: none;
-    padding: 0;
     max-width: none;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    font-size: 10.5pt;
   }
 
+  .head {
+    break-inside: avoid;
+  }
+
+  // La hoja impresa siempre conserva su distribución de escritorio.
+  .route {
+    grid-template-columns: 1fr auto 1fr;
+
+    .arrow {
+      display: flex;
+    }
+  }
+
+  .lines .check {
+    display: table-cell;
+  }
+
+  .signatures {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    break-inside: avoid;
+  }
+
+  .pair,
   .lines tr {
     break-inside: avoid;
+  }
+
+  .code {
+    font-size: 2.75rem;
+  }
+
+  .sheet,
+  .tag,
+  .qr,
+  .box,
+  .facts {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }

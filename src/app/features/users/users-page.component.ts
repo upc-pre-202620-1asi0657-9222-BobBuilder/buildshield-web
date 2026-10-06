@@ -6,13 +6,14 @@ import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {toApiError} from '../../core/http/api-error';
 import {Assignment, SiteType, User, Warehouse, Worksite} from '../../core/models/organization';
 import {ROLES, ROLE_LABELS, Role} from '../../core/models/role';
+import {IconComponent} from '../../shared/icon.component';
 import {PASSWORD_HINT, passwordRule} from '../../shared/validators';
 
 /** T12: usuarios de la organización (solo administrador): listar, crear con rol y asignar sede. */
 @Component({
   selector: 'app-users-page',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, IconComponent],
   templateUrl: './users-page.component.html',
 })
 export class UsersPageComponent implements OnInit {
@@ -51,6 +52,11 @@ export class UsersPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  /** Lleva el foco (y la vista) a un campo del formulario. */
+  protected focusField(id: string): void {
+    document.getElementById(id)?.focus();
   }
 
   protected siteOptionsFor(userId: string): Array<{id: string; name: string}> {

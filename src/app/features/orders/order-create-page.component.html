@@ -1,75 +1,123 @@
 <section class="page">
   <div class="page-header">
     <h1>Nuevo pedido</h1>
-    <a class="btn" routerLink="/orders">Volver</a>
+    <div class="actions">
+      <a class="btn btn-ghost" routerLink="/orders">
+        <app-icon name="back" />
+        Pedidos
+      </a>
+    </div>
   </div>
+  <p class="lead">Elige la obra, el almacén que la abastece y los materiales que necesitas.</p>
 
   @if (error()) {
     <p class="alert alert-error" role="alert">{{ error() }}</p>
   }
 
   <form class="card" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <h2>Destino y fecha</h2>
     <div class="form-grid">
       <div class="field">
         <label for="worksite">Obra</label>
-        <select id="worksite" formControlName="worksiteId">
-          <option value="">Selecciona…</option>
+        <select id="worksite" formControlName="worksiteId" aria-describedby="worksiteError">
+          <option value="">Elige la obra</option>
           @for (w of worksites(); track w.id) {
             <option [value]="w.id">{{ w.name }}</option>
           }
         </select>
+        @if (form.controls.worksiteId.touched && form.controls.worksiteId.invalid) {
+          <span class="error" id="worksiteError">Elige la obra que recibe los materiales.</span>
+        }
       </div>
       <div class="field">
         <label for="warehouse">Almacén</label>
-        <select id="warehouse" formControlName="warehouseId">
-          <option value="">Selecciona…</option>
+        <select id="warehouse" formControlName="warehouseId" aria-describedby="warehouseHint warehouseError">
+          <option value="">Elige el almacén</option>
           @for (w of warehouses(); track w.id) {
             <option [value]="w.id">{{ w.name }}</option>
           }
         </select>
+        <span class="hint" id="warehouseHint">El almacén que prepara y despacha el pedido.</span>
+        @if (form.controls.warehouseId.touched && form.controls.warehouseId.invalid) {
+          <span class="error" id="warehouseError">Elige el almacén.</span>
+        }
       </div>
       <div class="field">
         <label for="requiredDate">Fecha requerida en obra</label>
-        <input id="requiredDate" type="date" [min]="minDate" formControlName="requiredDate" />
+        <input
+          id="requiredDate"
+          type="date"
+          [min]="minDate"
+          formControlName="requiredDate"
+          aria-describedby="requiredDateError"
+        />
+        @if (form.controls.requiredDate.touched && form.controls.requiredDate.invalid) {
+          <span class="error" id="requiredDateError">Indica para qué día necesitas los materiales.</span>
+        }
       </div>
       <div class="field">
         <label for="notes">Notas (opcional)</label>
-        <input id="notes" formControlName="notes" maxlength="400" />
+        <input id="notes" formControlName="notes" maxlength="400" autocomplete="off" aria-describedby="notesHint" />
+        <span class="hint" id="notesHint">Por ejemplo, horario de recepción o acceso a la obra.</span>
       </div>
     </div>
 
-    <h2 style="margin-top: 20px">Materiales</h2>
+    <h2 class="section-title">Materiales</h2>
     <div formArrayName="lines">
       @for (line of lines.controls; track line; let i = $index) {
         <div class="line" [formGroupName]="i">
           <div class="field">
-            <label [for]="'material-' + i">Material</label>
+            <label [for]="'material-' + i">Material {{ i + 1 }}</label>
             <select [id]="'material-' + i" formControlName="materialId">
-              <option value="">Selecciona…</option>
+              <option value="">Elige el material</option>
               @for (m of materials(); track m.id) {
                 <option [value]="m.id">{{ m.sku }} · {{ m.name }}</option>
               }
             </select>
           </div>
           <div class="field">
-            <label [for]="'qty-' + i">Cantidad {{ unitOf(line.value.materialId ?? '') }}</label>
-            <input [id]="'qty-' + i" type="number" inputmode="decimal" min="0" step="0.001" formControlName="quantity" />
+            <label [for]="'qty-' + i">
+              Cantidad
+              @if (unitOf(line.value.materialId ?? ''); as unit) {
+                <span class="muted">({{ unit }})</span>
+              }
+            </label>
+            <input
+              [id]="'qty-' + i"
+              type="number"
+              inputmode="decimal"
+              min="0"
+              step="0.001"
+              formControlName="quantity"
+            />
           </div>
-          <button type="button" class="btn btn-danger" (click)="removeLine(i)" [disabled]="lines.length === 1">
+          <button
+            type="button"
+            class="btn btn-danger"
+            (click)="removeLine(i)"
+            [disabled]="lines.length === 1"
+            [attr.aria-label]="'Quitar material ' + (i + 1)"
+          >
             Quitar
           </button>
         </div>
       }
     </div>
+    <button type="button" class="btn add-line" (click)="addLine()">
+      <app-icon name="plus" />
+      Agregar otro material
+    </button>
 
     @if (form.touched && form.invalid) {
-      <p class="error">Completa obra, almacén, fecha y cada material con una cantidad mayor que cero.</p>
+      <p class="error form-error" role="alert">
+        Completa obra, almacén, fecha y cada material con una cantidad mayor que cero.
+      </p>
     }
 
     <div class="form-actions">
-      <button type="button" class="btn" (click)="addLine()">Agregar material</button>
       <button type="submit" class="btn btn-primary" [disabled]="saving()">
-        {{ saving() ? 'Enviando…' : 'Enviar pedido' }}
+        <app-icon name="check" />
+        {{ saving() ? 'Enviando pedido…' : 'Enviar pedido al almacén' }}
       </button>
     </div>
   </form>

@@ -5,6 +5,7 @@ import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {AuthService} from '../../core/auth/auth.service';
 import {toApiError} from '../../core/http/api-error';
 import {Warehouse, WarehouseType} from '../../core/models/organization';
+import {IconComponent} from '../../shared/icon.component';
 
 const TYPE_LABELS: Readonly<Partial<Record<string, string>>> = {
   WAREHOUSE: 'Almacén',
@@ -15,13 +16,64 @@ const TYPE_LABELS: Readonly<Partial<Record<string, string>>> = {
 @Component({
   selector: 'app-warehouses-page',
   standalone: true,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, IconComponent],
   template: `
     <section class="page">
-      <div class="page-header"><h1>Almacenes</h1></div>
+      <div class="page-header">
+        <h1>Almacenes</h1>
+        @if (canCreate()) {
+          <div class="actions">
+            <button class="btn" type="button" (click)="focusField('name')">
+              <app-icon name="plus" />
+              Nuevo almacén
+            </button>
+          </div>
+        }
+      </div>
+      <p class="lead">Lugares desde donde salen los materiales hacia las obras.</p>
       @if (error()) {
         <p class="alert alert-error" role="alert">{{ error() }}</p>
       }
+
+      @if (loading()) {
+        <p class="loading">Cargando almacenes…</p>
+      } @else if (warehouses().length) {
+        <div class="card">
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Nombre</th><th>Tipo</th><th>Dirección</th><th>Estado</th></tr>
+              </thead>
+              <tbody>
+                @for (w of warehouses(); track w.id) {
+                  <tr>
+                    <td data-label="Nombre"><strong>{{ w.name }}</strong></td>
+                    <td data-label="Tipo">{{ typeLabels[w.type] ?? w.type }}</td>
+                    <td data-label="Dirección">{{ w.address }}</td>
+                    <td data-label="Estado">
+                      <span class="badge" [class.badge-ok]="w.active">{{ w.active ? 'Activo' : 'Inactivo' }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      } @else if (!error()) {
+        <div class="empty">
+          <strong>Aún no hay almacenes</strong>
+          @if (canCreate()) {
+            <p>Registra al menos un almacén para que las obras puedan pedirle materiales.</p>
+            <button class="btn" type="button" (click)="focusField('name')">
+              <app-icon name="plus" />
+              Registrar el primer almacén
+            </button>
+          } @else {
+            <p>El administrador todavía no registra almacenes.</p>
+          }
+        </div>
+      }
+
       @if (canCreate()) {
         <div class="card">
           <h2>Nuevo almacén</h2>
@@ -29,7 +81,17 @@ const TYPE_LABELS: Readonly<Partial<Record<string, string>>> = {
             <div class="form-grid">
               <div class="field">
                 <label for="name">Nombre</label>
-                <input id="name" formControlName="name" />
+                <input
+                  id="name"
+                  formControlName="name"
+                  maxlength="150"
+                  autocomplete="off"
+                  aria-describedby="nameHint nameError"
+                />
+                <span class="hint" id="nameHint">Como lo conoce el equipo, por ejemplo «Almacén central Ate».</span>
+                @if (form.controls.name.touched && form.controls.name.invalid) {
+                  <span class="error" id="nameError">Escribe el nombre del almacén.</span>
+                }
               </div>
               <div class="field">
                 <label for="type">Tipo</label>
@@ -38,41 +100,29 @@ const TYPE_LABELS: Readonly<Partial<Record<string, string>>> = {
                   <option value="COLLECTION_CENTER">Centro de acopio</option>
                 </select>
               </div>
-              <div class="field">
+              <div class="field full">
                 <label for="address">Dirección</label>
-                <input id="address" formControlName="address" />
+                <input
+                  id="address"
+                  formControlName="address"
+                  maxlength="200"
+                  autocomplete="street-address"
+                  aria-describedby="addressError"
+                />
+                @if (form.controls.address.touched && form.controls.address.invalid) {
+                  <span class="error" id="addressError">Escribe la dirección del almacén.</span>
+                }
               </div>
             </div>
-            @if (form.touched && form.invalid) {
-              <p class="error">Completa nombre y dirección.</p>
-            }
             <div class="form-actions">
-              <button class="btn btn-primary" type="submit" [disabled]="saving()">Registrar almacén</button>
+              <button class="btn btn-primary" type="submit" [disabled]="saving()">
+                <app-icon name="check" />
+                {{ saving() ? 'Registrando…' : 'Registrar almacén' }}
+              </button>
             </div>
           </form>
         </div>
       }
-      <div class="card">
-        <table class="table">
-          <thead>
-            <tr><th>Nombre</th><th>Tipo</th><th>Dirección</th><th>Estado</th></tr>
-          </thead>
-          <tbody>
-            @for (w of warehouses(); track w.id) {
-              <tr>
-                <td data-label="Nombre">{{ w.name }}</td>
-                <td data-label="Tipo">{{ typeLabels[w.type] ?? w.type }}</td>
-                <td data-label="Dirección">{{ w.address }}</td>
-                <td data-label="Estado">
-                  <span class="badge" [class.badge-ok]="w.active">{{ w.active ? 'Activo' : 'Inactivo' }}</span>
-                </td>
-              </tr>
-            } @empty {
-              <tr><td colspan="4" class="muted">{{ loading() ? 'Cargando…' : 'No hay almacenes registrados.' }}</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
     </section>
   `,
 })
@@ -95,6 +145,11 @@ export class WarehousesPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  /** Lleva el foco (y la vista) al primer campo del formulario de alta. */
+  protected focusField(id: string): void {
+    document.getElementById(id)?.focus();
   }
 
   protected create(): void {

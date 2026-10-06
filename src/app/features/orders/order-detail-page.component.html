@@ -1,7 +1,21 @@
 <section class="page">
   <div class="page-header">
-    <h1>Pedido</h1>
-    <a class="btn" routerLink="/orders">Volver</a>
+    <div>
+      <p class="eyebrow muted">Pedido</p>
+      <h1 class="code-title">{{ order()?.id?.slice(0, 8) ?? 'Pedido' }}</h1>
+    </div>
+    <div class="actions">
+      @if (canDispatch()) {
+        <a class="btn btn-primary" [routerLink]="['/dispatches/new']" [queryParams]="{orderId: id()}">
+          <app-icon name="truck" />
+          Crear despacho
+        </a>
+      }
+      <a class="btn btn-ghost" routerLink="/orders">
+        <app-icon name="back" />
+        Pedidos
+      </a>
+    </div>
   </div>
 
   @if (error()) {
@@ -9,34 +23,41 @@
   }
 
   @if (order(); as o) {
-    <div class="card">
-      <p>
-        <span class="badge" [class]="'badge ' + badge(o.status)">{{ label(o) }}</span>
-      </p>
-      <p><strong>Obra:</strong> {{ worksiteName() }}</p>
-      <p><strong>Almacén:</strong> {{ warehouseName() }}</p>
-      <p><strong>Registrado:</strong> {{ o.placedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
-      @if (o.requiredDate) {
-        <p><strong>Fecha requerida:</strong> {{ o.requiredDate | date: 'dd/MM/yyyy' }}</p>
-      }
-      @if (o.notes) {
-        <p><strong>Notas:</strong> {{ o.notes }}</p>
-      }
-      @if (o.rejectionReason) {
-        <p class="alert alert-error"><strong>Motivo del rechazo:</strong> {{ o.rejectionReason }}</p>
-      }
-
-      @if (canDecide()) {
+    @if (canDecide()) {
+      <div class="card step-go">
+        <h2>Revisar pedido</h2>
+        <p class="muted">
+          Si lo apruebas, el almacén podrá despacharlo. Si lo rechazas, el encargado de obra verá el motivo.
+        </p>
         <div class="form-actions">
-          <button class="btn btn-primary" type="button" (click)="approve()" [disabled]="busy()">Aprobar</button>
-          <button class="btn btn-danger" type="button" (click)="showReject.set(!showReject())" [disabled]="busy()">
+          <button class="btn btn-primary" type="button" (click)="approve()" [disabled]="busy()">
+            <app-icon name="check" />
+            Aprobar pedido
+          </button>
+          <button
+            class="btn btn-danger"
+            type="button"
+            (click)="showReject.set(!showReject())"
+            [disabled]="busy()"
+            [attr.aria-expanded]="showReject()"
+            aria-controls="rejectPanel"
+          >
             Rechazar
           </button>
         </div>
         @if (showReject()) {
-          <div class="field" style="margin-top: 12px">
+          <div class="field reject" id="rejectPanel">
             <label for="reason">Motivo del rechazo</label>
-            <input id="reason" [(ngModel)]="rejectReason" maxlength="500" />
+            <input
+              id="reason"
+              [(ngModel)]="rejectReason"
+              maxlength="500"
+              autocomplete="off"
+              aria-describedby="reasonHint"
+            />
+            <span class="hint" id="reasonHint">
+              El encargado de obra lo leerá. Por ejemplo, «Sin stock de cemento hasta el lunes».
+            </span>
             <div class="form-actions">
               <button class="btn btn-danger" type="button" (click)="reject()" [disabled]="busy()">
                 Confirmar rechazo
@@ -44,56 +65,104 @@
             </div>
           </div>
         }
-      }
-      @if (canDispatch()) {
-        <div class="form-actions">
-          <a class="btn btn-primary" [routerLink]="['/dispatches/new']" [queryParams]="{orderId: o.id}">
-            Crear despacho
-          </a>
+      </div>
+    }
+
+    <div class="card">
+      <dl class="kv">
+        <div>
+          <dt>Estado</dt>
+          <dd><span [class]="'badge ' + badge(o.status)">{{ label(o) }}</span></dd>
         </div>
+        <div>
+          <dt>Obra</dt>
+          <dd>{{ worksiteName() }}</dd>
+        </div>
+        <div>
+          <dt>Almacén</dt>
+          <dd>{{ warehouseName() }}</dd>
+        </div>
+        <div>
+          <dt>Registrado</dt>
+          <dd>{{ o.placedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+        </div>
+        @if (o.requiredDate) {
+          <div>
+            <dt>Fecha requerida</dt>
+            <dd>{{ o.requiredDate | date: 'dd/MM/yyyy' }}</dd>
+          </div>
+        }
+      </dl>
+      @if (o.notes) {
+        <p><span class="muted">Notas:</span> {{ o.notes }}</p>
+      }
+      @if (o.rejectionReason) {
+        <p class="alert alert-error"><span><strong>Motivo del rechazo:</strong> {{ o.rejectionReason }}</span></p>
       }
     </div>
 
     <div class="card">
       <h2>Materiales</h2>
-      <table class="table">
-        <thead>
-          <tr>
-            <th>SKU</th>
-            <th class="num">Solicitado</th>
-            <th class="num">Despachado</th>
-            <th class="num">Recibido</th>
-            <th class="num">Pendiente</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (line of o.lines; track line.materialId) {
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
             <tr>
-              <td data-label="SKU">{{ line.sku }} <span class="muted">{{ line.unit }}</span></td>
-              <td data-label="Solicitado" class="num">{{ line.requested | number: '1.0-3' }}</td>
-              <td data-label="Despachado" class="num">{{ line.dispatched | number: '1.0-3' }}</td>
-              <td data-label="Recibido" class="num">{{ line.received | number: '1.0-3' }}</td>
-              <td data-label="Pendiente" class="num">{{ line.pending | number: '1.0-3' }}</td>
+              <th>SKU</th>
+              <th>Unidad</th>
+              <th class="num">Solicitado</th>
+              <th class="num">Despachado</th>
+              <th class="num">Recibido</th>
+              <th class="num">Pendiente</th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (line of o.lines; track line.materialId) {
+              <tr>
+                <td data-label="SKU" class="code">{{ line.sku }}</td>
+                <td data-label="Unidad">{{ line.unit }}</td>
+                <td data-label="Solicitado" class="num">{{ line.requested | number: '1.0-3' }}</td>
+                <td data-label="Despachado" class="num">{{ line.dispatched | number: '1.0-3' }}</td>
+                <td data-label="Recibido" class="num">{{ line.received | number: '1.0-3' }}</td>
+                <td data-label="Pendiente" class="num">
+                  <strong>{{ line.pending | number: '1.0-3' }}</strong>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     </div>
 
     @if (dispatches().length) {
       <div class="card">
-        <h2>Despachos</h2>
-        <ul class="list-plain">
-          @for (d of dispatches(); track d.id) {
-            <li style="padding: 6px 0">
-              {{ d.manifestCode }} ·
-              <span class="badge" [class]="'badge ' + badge(d.status)">{{ dispatchLabel(d) }}</span>
-            </li>
-          }
-        </ul>
+        <h2>Despachos de este pedido</h2>
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Código</th><th>Preparado</th><th>Estado</th></tr>
+            </thead>
+            <tbody>
+              @for (d of dispatches(); track d.id) {
+                <tr>
+                  <td data-label="Código" class="code">
+                    @if (isWarehouse()) {
+                      <a [routerLink]="['/dispatches', d.id]">{{ d.manifestCode }}</a>
+                    } @else {
+                      {{ d.manifestCode }}
+                    }
+                  </td>
+                  <td data-label="Preparado">{{ d.preparedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                  <td data-label="Estado">
+                    <span [class]="'badge ' + badge(d.status)">{{ dispatchLabel(d) }}</span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </div>
     }
   } @else if (!error()) {
-    <p class="muted">Cargando…</p>
+    <p class="loading">Cargando pedido…</p>
   }
 </section>

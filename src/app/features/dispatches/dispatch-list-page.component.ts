@@ -10,62 +10,108 @@ import {toApiError} from '../../core/http/api-error';
 import {Dispatch, dispatchStatusLabel} from '../../core/models/logistics';
 import {DISPATCHABLE_ORDER_STATUSES, Order} from '../../core/models/order';
 import {Worksite} from '../../core/models/organization';
+import {IconComponent} from '../../shared/icon.component';
 import {nameIndex, statusBadgeClass} from '../../shared/status';
 
 /** Bandeja del almacén: pedidos por atender y despachos en curso. */
 @Component({
   selector: 'app-dispatch-list-page',
   standalone: true,
-  imports: [RouterLink, DatePipe],
+  imports: [RouterLink, DatePipe, IconComponent],
   template: `
     <section class="page">
       <div class="page-header"><h1>Despachos</h1></div>
+      <p class="lead">Prepara los pedidos aprobados y sigue cada despacho hasta que la obra lo recibe.</p>
       @if (error()) {
         <p class="alert alert-error" role="alert">{{ error() }}</p>
       }
 
-      <div class="card">
-        <h2>Pedidos por despachar</h2>
-        <table class="table">
-          <thead><tr><th>Pedido</th><th>Obra</th><th>Fecha</th><th></th></tr></thead>
-          <tbody>
-            @for (o of pendingOrders(); track o.id) {
-              <tr>
-                <td data-label="Pedido"><a [routerLink]="['/orders', o.id]">{{ o.id.slice(0, 8) }}</a></td>
-                <td data-label="Obra">{{ worksiteNames().get(o.worksiteId) ?? '-' }}</td>
-                <td data-label="Fecha">{{ o.placedAt | date: 'dd/MM/yyyy' }}</td>
-                <td data-label="">
-                  <a class="btn btn-primary" routerLink="/dispatches/new" [queryParams]="{orderId: o.id}">
-                    Crear despacho
-                  </a>
-                </td>
-              </tr>
-            } @empty {
-              <tr><td colspan="4" class="muted">{{ loading() ? 'Cargando…' : 'No hay pedidos aprobados pendientes.' }}</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+      @if (loading()) {
+        <p class="loading">Cargando pedidos y despachos…</p>
+      } @else {
+        <div class="card">
+          <h2>Pedidos por despachar</h2>
+          @if (pendingOrders().length) {
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Pedido</th>
+                    <th>Obra</th>
+                    <th>Fecha</th>
+                    <th class="num">Materiales</th>
+                    <th><span class="visually-hidden">Acciones</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (o of pendingOrders(); track o.id) {
+                    <tr>
+                      <td data-label="Pedido" class="code">
+                        <a [routerLink]="['/orders', o.id]">{{ o.id.slice(0, 8) }}</a>
+                      </td>
+                      <td data-label="Obra">{{ worksiteNames().get(o.worksiteId) ?? '-' }}</td>
+                      <td data-label="Fecha">{{ o.placedAt | date: 'dd/MM/yyyy' }}</td>
+                      <td data-label="Materiales" class="num">{{ o.lines.length }}</td>
+                      <td data-label="" class="row-actions">
+                        <a class="btn" routerLink="/dispatches/new" [queryParams]="{orderId: o.id}">
+                          <app-icon name="truck" />
+                          Crear despacho
+                        </a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty">
+              <strong>Nada por despachar</strong>
+              <p>Cuando apruebes un pedido con materiales pendientes, aparecerá aquí para armar su despacho.</p>
+              <a class="btn" routerLink="/orders">
+                <app-icon name="orders" />
+                Revisar pedidos
+              </a>
+            </div>
+          }
+        </div>
 
-      <div class="card">
-        <h2>Despachos</h2>
-        <table class="table">
-          <thead><tr><th>Código</th><th>Obra</th><th>Preparado</th><th>Estado</th><th></th></tr></thead>
-          <tbody>
-            @for (d of dispatches(); track d.id) {
-              <tr>
-                <td data-label="Código">{{ d.manifestCode }}</td>
-                <td data-label="Obra">{{ (d.worksiteId && worksiteNames().get(d.worksiteId)) || '-' }}</td>
-                <td data-label="Preparado">{{ d.preparedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
-                <td data-label="Estado"><span [class]="'badge ' + badge(d.status)">{{ label(d) }}</span></td>
-                <td data-label=""><a class="btn" [routerLink]="['/dispatches', d.id]">Abrir</a></td>
-              </tr>
-            } @empty {
-              <tr><td colspan="5" class="muted">{{ loading() ? 'Cargando…' : 'Aún no hay despachos.' }}</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
+        <div class="card">
+          <h2>Despachos</h2>
+          @if (dispatches().length) {
+            <div class="table-wrap">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Obra</th>
+                    <th>Preparado</th>
+                    <th>Estado</th>
+                    <th><span class="visually-hidden">Acciones</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (d of dispatches(); track d.id) {
+                    <tr>
+                      <td data-label="Código" class="code">{{ d.manifestCode }}</td>
+                      <td data-label="Obra">{{ (d.worksiteId && worksiteNames().get(d.worksiteId)) || '-' }}</td>
+                      <td data-label="Preparado">{{ d.preparedAt | date: 'dd/MM/yyyy HH:mm' }}</td>
+                      <td data-label="Estado"><span [class]="'badge ' + badge(d.status)">{{ label(d) }}</span></td>
+                      <td data-label="" class="row-actions">
+                        <a class="btn" [routerLink]="['/dispatches', d.id]">Abrir despacho</a>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else {
+            <div class="empty">
+              <strong>Aún no hay despachos</strong>
+              <p>Crea un despacho desde un pedido aprobado. Aquí verás si está preparado, en tránsito o recibido.</p>
+            </div>
+          }
+        </div>
+      }
     </section>
   `,
 })

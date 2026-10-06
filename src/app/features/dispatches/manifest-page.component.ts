@@ -8,12 +8,13 @@ import {
   DispatchManifest,
   dispatchStatusLabel,
 } from '../../core/models/logistics';
+import {IconComponent} from '../../shared/icon.component';
 
 /** T32: manifiesto imprimible del despacho con su QR (hoja A4, estilos de impresión). */
 @Component({
   selector: 'app-manifest-page',
   standalone: true,
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, IconComponent],
   templateUrl: './manifest-page.component.html',
   styleUrl: './manifest-page.component.scss',
 })

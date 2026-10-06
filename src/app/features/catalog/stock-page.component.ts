@@ -6,73 +6,135 @@ import {forkJoin} from 'rxjs';
 import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {toApiError} from '../../core/http/api-error';
 import {Material, StockLevel, Warehouse} from '../../core/models/organization';
+import {IconComponent} from '../../shared/icon.component';
 
 /** Stock por almacén y registro de entradas (POST con Idempotency-Key automático). */
 @Component({
   selector: 'app-stock-page',
   standalone: true,
-  imports: [ReactiveFormsModule, DecimalPipe],
+  imports: [ReactiveFormsModule, DecimalPipe, IconComponent],
   template: `
     <section class="page">
-      <div class="page-header"><h1>Stock</h1></div>
+      <div class="page-header">
+        <h1>Stock</h1>
+        <div class="actions">
+          <button class="btn" type="button" (click)="focusField('warehouse')">
+            <app-icon name="plus" />
+            Nueva entrada
+          </button>
+        </div>
+      </div>
+      <p class="lead">
+        Lo que hay en cada almacén. Lo reservado ya está comprometido con un despacho y no se puede volver a usar.
+      </p>
       @if (error()) {
         <p class="alert alert-error" role="alert">{{ error() }}</p>
       }
+
+      @if (loading()) {
+        <p class="loading">Cargando stock…</p>
+      } @else if (stock().length) {
+        <div class="card">
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Almacén</th>
+                  <th>SKU</th>
+                  <th>Material</th>
+                  <th class="num">Disponible</th>
+                  <th class="num">Reservado</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (s of stock(); track s.warehouseId + s.materialId) {
+                  <tr>
+                    <td data-label="Almacén">{{ s.warehouseName }}</td>
+                    <td data-label="SKU" class="code">{{ s.sku }}</td>
+                    <td data-label="Material">{{ s.materialName }}</td>
+                    <td data-label="Disponible" class="num">
+                      <strong>{{ s.availableQty | number: '1.0-3' }}</strong> {{ s.unit }}
+                    </td>
+                    <td data-label="Reservado" class="num">{{ s.reservedQty | number: '1.0-3' }} {{ s.unit }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+      } @else if (!error()) {
+        <div class="empty">
+          <strong>Aún no hay existencias</strong>
+          <p>Registra lo que llega al almacén para poder despachar a las obras.</p>
+          <button class="btn" type="button" (click)="focusField('warehouse')">
+            <app-icon name="plus" />
+            Registrar la primera entrada
+          </button>
+        </div>
+      }
+
       <div class="card">
-        <h2>Registrar entrada</h2>
+        <h2>Nueva entrada</h2>
+        <p class="muted">Suma material al stock del almacén, por ejemplo cuando llega una compra del proveedor.</p>
         <form [formGroup]="form" (ngSubmit)="register()" novalidate>
           <div class="form-grid">
             <div class="field">
               <label for="warehouse">Almacén</label>
-              <select id="warehouse" formControlName="warehouseId">
-                <option value="">Selecciona…</option>
+              <select id="warehouse" formControlName="warehouseId" aria-describedby="warehouseError">
+                <option value="">Elige el almacén</option>
                 @for (w of warehouses(); track w.id) {
                   <option [value]="w.id">{{ w.name }}</option>
                 }
               </select>
+              @if (form.controls.warehouseId.touched && form.controls.warehouseId.invalid) {
+                <span class="error" id="warehouseError">Elige el almacén que recibe el material.</span>
+              }
             </div>
             <div class="field">
               <label for="material">Material</label>
-              <select id="material" formControlName="materialId">
-                <option value="">Selecciona…</option>
+              <select id="material" formControlName="materialId" aria-describedby="materialError">
+                <option value="">Elige el material</option>
                 @for (m of materials(); track m.id) {
                   <option [value]="m.id">{{ m.sku }} · {{ m.name }}</option>
                 }
               </select>
+              @if (form.controls.materialId.touched && form.controls.materialId.invalid) {
+                <span class="error" id="materialError">Elige el material.</span>
+              }
             </div>
             <div class="field">
-              <label for="quantity">Cantidad</label>
-              <input id="quantity" type="number" inputmode="decimal" min="0" step="0.001" formControlName="quantity" />
+              <label for="quantity">
+                Cantidad
+                @if (unitOf(form.controls.materialId.value); as unit) {
+                  <span class="muted">({{ unit }})</span>
+                }
+              </label>
+              <input
+                id="quantity"
+                type="number"
+                inputmode="decimal"
+                min="0"
+                step="0.001"
+                formControlName="quantity"
+                aria-describedby="quantityError"
+              />
+              @if (form.controls.quantity.touched && form.controls.quantity.invalid) {
+                <span class="error" id="quantityError">La cantidad debe ser mayor que cero.</span>
+              }
             </div>
             <div class="field">
-              <label for="note">Guía u observación</label>
-              <input id="note" formControlName="note" maxlength="200" />
+              <label for="note">Guía u observación (opcional)</label>
+              <input id="note" formControlName="note" maxlength="200" autocomplete="off" aria-describedby="noteHint" />
+              <span class="hint" id="noteHint">Por ejemplo, el número de guía de remisión del proveedor.</span>
             </div>
           </div>
           <div class="form-actions">
-            <button class="btn btn-primary" type="submit" [disabled]="saving()">Registrar entrada</button>
+            <button class="btn btn-primary" type="submit" [disabled]="saving()">
+              <app-icon name="check" />
+              {{ saving() ? 'Registrando…' : 'Registrar entrada' }}
+            </button>
           </div>
         </form>
-      </div>
-      <div class="card">
-        <table class="table">
-          <thead>
-            <tr><th>Almacén</th><th>SKU</th><th>Material</th><th class="num">Disponible</th><th class="num">Reservado</th></tr>
-          </thead>
-          <tbody>
-            @for (s of stock(); track s.warehouseId + s.materialId) {
-              <tr>
-                <td data-label="Almacén">{{ s.warehouseName }}</td>
-                <td data-label="SKU">{{ s.sku }}</td>
-                <td data-label="Material">{{ s.materialName }}</td>
-                <td data-label="Disponible" class="num">{{ s.availableQty | number: '1.0-3' }} {{ s.unit }}</td>
-                <td data-label="Reservado" class="num">{{ s.reservedQty | number: '1.0-3' }}</td>
-              </tr>
-            } @empty {
-              <tr><td colspan="5" class="muted">{{ loading() ? 'Cargando…' : 'Sin existencias.' }}</td></tr>
-            }
-          </tbody>
-        </table>
       </div>
     </section>
   `,
@@ -103,6 +165,15 @@ export class StockPageComponent implements OnInit {
       error: (err: unknown) => this.error.set(toApiError(err).message),
     });
     this.load();
+  }
+
+  /** Lleva el foco (y la vista) al primer campo del formulario de entrada. */
+  protected focusField(id: string): void {
+    document.getElementById(id)?.focus();
+  }
+
+  protected unitOf(materialId: string): string {
+    return this.materials().find((m) => m.id === materialId)?.unit ?? '';
   }
 
   protected register(): void {

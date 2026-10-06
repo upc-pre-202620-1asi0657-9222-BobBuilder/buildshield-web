@@ -8,27 +8,42 @@ import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {Material, Warehouse, Worksite} from '../../core/models/organization';
 import {generateUuid} from '../../core/util/uuid';
+import {IconComponent} from '../../shared/icon.component';
 import {todayIso} from '../../shared/validators';
 
 /** T19: el encargado de obra pide materiales a un almacén. */
 @Component({
   selector: 'app-order-create-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, IconComponent],
   templateUrl: './order-create-page.component.html',
   styles: `
+    .section-title {
+      margin-top: 28px;
+    }
     .line {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 8px;
-      padding: 12px 0;
+      gap: 12px;
+      padding: 16px 0;
       border-bottom: 1px solid var(--bs-color-border);
+    }
+    .line:first-child {
+      padding-top: 0;
     }
     @media (min-width: 720px) {
       .line {
         grid-template-columns: 2fr 1fr auto;
         align-items: end;
       }
+    }
+    .add-line {
+      margin-top: 16px;
+    }
+    .form-error {
+      margin: 16px 0 0;
+      color: var(--bs-merma);
+      font-weight: 500;
     }
   `,
 })

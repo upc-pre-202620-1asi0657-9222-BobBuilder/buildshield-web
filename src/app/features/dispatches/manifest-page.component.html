@@ -1,114 +1,155 @@
 <div class="toolbar no-print">
-  <button class="btn" type="button" (click)="back()">Volver</button>
-  <button class="btn btn-primary" type="button" (click)="print()" [disabled]="!manifest()">Imprimir</button>
+  <button class="btn btn-ghost" type="button" (click)="back()">
+    <app-icon name="back" />
+    Volver
+  </button>
+  <button class="btn btn-primary" type="button" (click)="print()" [disabled]="!manifest()">
+    <app-icon name="print" />
+    Imprimir manifiesto
+  </button>
 </div>
 
 @if (error()) {
-  <p class="alert alert-error sheet" role="alert">{{ error() }}</p>
+  <p class="alert alert-error sheet-msg" role="alert">{{ error() }}</p>
 }
 
 @if (manifest(); as m) {
   <article class="sheet">
     <header class="head">
-      <div>
-        <p class="brand">Build<strong>Shield</strong></p>
+      <div class="head-main">
+        <div class="brand">
+          <img src="brand/mark.svg" alt="" width="40" height="40" />
+          <span class="wordmark" translate="no">BuildShield</span>
+        </div>
         <h1>Manifiesto de despacho</h1>
         <p class="code">{{ m.manifestCode }}</p>
-        <p class="status">Estado: {{ label(m) }} · {{ typeLabel(m.type) }}</p>
+        <p class="status">
+          <span class="tag">{{ label(m) }}</span>
+          <span class="tag tag-plain">{{ typeLabel(m.type) }}</span>
+        </p>
       </div>
       <figure class="qr">
         @if (qrSrc(); as src) {
-          <img [src]="src" alt="Código QR del despacho" width="160" height="160" />
+          <img [src]="src" alt="Código QR del despacho" width="148" height="148" />
         }
         <figcaption>
-          {{ m.qrContent }}<br />Escanear en obra para abrir la recepción
+          <span class="qr-content">{{ m.qrContent }}</span>
+          Escanéalo en obra para abrir la recepción.
           @if (simulated) {
-            <br /><em>QR simulado (vista previa)</em>
+            <em>QR simulado, vista previa.</em>
           }
         </figcaption>
       </figure>
     </header>
 
-    <section class="grid">
-      <div>
+    <section class="route" aria-label="Recorrido">
+      <div class="box">
         <h2>Origen</h2>
-        <p>{{ m.warehouse.name }}</p>
+        <p class="strong">{{ m.warehouse.name }}</p>
         @if (m.warehouse.address) {
-          <p class="muted">{{ m.warehouse.address }}</p>
+          <p class="sub">{{ m.warehouse.address }}</p>
         }
       </div>
-      <div>
+      <div class="arrow" aria-hidden="true">
+        <app-icon name="truck" />
+      </div>
+      <div class="box">
         <h2>Destino</h2>
-        <p>{{ m.worksite.name }}</p>
+        <p class="strong">{{ m.worksite.name }}</p>
         @if (m.worksite.address) {
-          <p class="muted">{{ m.worksite.address }}</p>
+          <p class="sub">{{ m.worksite.address }}</p>
         }
-      </div>
-      <div>
-        <h2>Pedido</h2>
-        <p>{{ m.order.id }}</p>
-        <p class="muted">{{ m.order.placedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
-      </div>
-      <div>
-        <h2>Salida</h2>
-        <p>{{ m.departedAt ? (m.departedAt | date: 'dd/MM/yyyy HH:mm') : 'Pendiente' }}</p>
       </div>
     </section>
 
+    <dl class="facts">
+      <div>
+        <dt>Pedido</dt>
+        <dd class="mono">{{ m.order.id }}</dd>
+      </div>
+      <div>
+        <dt>Fecha del pedido</dt>
+        <dd>{{ m.order.placedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+      </div>
+      <div>
+        <dt>Preparado</dt>
+        <dd>{{ m.preparedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+      </div>
+      <div>
+        <dt>Salida</dt>
+        <dd>{{ m.departedAt ? (m.departedAt | date: 'dd/MM/yyyy HH:mm') : 'Pendiente' }}</dd>
+      </div>
+    </dl>
+
     <section>
-      <h2>Materiales</h2>
+      <h2 class="section">Materiales</h2>
       <table class="lines">
         <thead>
-          <tr><th>#</th><th>SKU</th><th>Material</th><th class="num">Cantidad</th><th>Unidad</th></tr>
+          <tr>
+            <th class="idx">N.º</th>
+            <th>SKU</th>
+            <th>Material</th>
+            <th class="num">Cantidad</th>
+            <th>Unidad</th>
+            <th class="check">Recibido</th>
+          </tr>
         </thead>
         <tbody>
           @for (line of m.lines; track line.materialId; let i = $index) {
             <tr>
-              <td>{{ i + 1 }}</td>
-              <td>{{ line.sku }}</td>
+              <td class="idx">{{ i + 1 }}</td>
+              <td class="sku">{{ line.sku }}</td>
               <td>{{ line.name }}</td>
               <td class="num">{{ line.quantity | number: '1.0-3' }}</td>
               <td>{{ line.unit }}</td>
+              <td class="check"><span class="tick" aria-hidden="true"></span></td>
             </tr>
           }
         </tbody>
       </table>
     </section>
 
-    <section class="grid">
-      <div>
+    <section class="pair">
+      <div class="box">
         <h2>Transportista</h2>
         @if (m.carrier; as c) {
-          <p>{{ c.name }}</p>
-          <p>Documento: {{ c.document }}</p>
-          <p>Placa: {{ c.plate }}</p>
+          <p class="strong">{{ c.name }}</p>
+          <dl class="mini">
+            <div><dt>Documento</dt><dd>{{ c.document }}</dd></div>
+            <div><dt>Placa</dt><dd class="plate">{{ c.plate }}</dd></div>
+          </dl>
         } @else {
-          <p class="muted">Sin registrar</p>
+          <p class="sub">Sin registrar</p>
         }
       </div>
-      <div>
+      <div class="box">
         <h2>Pesaje de salida</h2>
         @if (m.departureWeighing; as w) {
-          <p>Bruto: {{ w.grossKg | number: '1.0-3' }} kg</p>
-          <p>Tara: {{ w.tareKg | number: '1.0-3' }} kg</p>
-          <p><strong>Neto: {{ netKg(m) | number: '1.0-3' }} kg</strong></p>
+          <dl class="mini">
+            <div><dt>Bruto</dt><dd>{{ w.grossKg | number: '1.0-3' }} kg</dd></div>
+            <div><dt>Tara</dt><dd>{{ w.tareKg | number: '1.0-3' }} kg</dd></div>
+          </dl>
+          <p class="net"><span>Peso neto</span> <strong>{{ netKg(m) | number: '1.0-3' }} kg</strong></p>
           @if (w.ticketPhotoUrl) {
-            <p class="muted">Ticket: {{ w.ticketPhotoUrl }}</p>
+            <p class="sub ticket">Ticket: {{ w.ticketPhotoUrl }}</p>
           }
         } @else {
-          <p class="muted">Sin registrar</p>
+          <p class="sub">Sin registrar</p>
         }
       </div>
     </section>
 
-    <section class="signatures">
-      <div>Despachado por (almacén)</div>
-      <div>Transportista</div>
-      <div>Recibido por (obra)</div>
+    <section class="signatures" aria-label="Firmas">
+      <div><span>Despachado por</span> Almacén</div>
+      <div><span>Recibido para transporte</span> Transportista</div>
+      <div><span>Recibido por</span> Obra</div>
     </section>
 
-    <footer class="foot">Impreso el {{ printedAt | date: 'dd/MM/yyyy HH:mm' }}</footer>
+    <footer class="foot">
+      <span>Impreso el {{ printedAt | date: 'dd/MM/yyyy HH:mm' }}</span>
+      <span translate="no">BuildShield, manifiesto {{ m.manifestCode }}</span>
+    </footer>
   </article>
 } @else if (!error()) {
-  <p class="muted sheet">Cargando…</p>
+  <p class="loading sheet-msg">Cargando manifiesto…</p>
 }
