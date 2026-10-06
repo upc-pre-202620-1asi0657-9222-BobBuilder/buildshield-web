@@ -1,0 +1,134 @@
+:host {
+  display: block;
+  padding: 16px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  max-width: 210mm;
+  margin: 0 auto 16px;
+}
+
+.sheet {
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid var(--bs-color-border);
+  color: #000;
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 2px solid #000;
+  padding-bottom: 12px;
+}
+
+.brand {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+h1 {
+  margin: 4px 0;
+  font-size: 1.4rem;
+}
+
+h2 {
+  margin: 12px 0 4px;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+p {
+  margin: 2px 0;
+}
+
+.code {
+  font-family: monospace;
+  font-size: 1rem;
+}
+
+.qr {
+  margin: 0;
+  text-align: center;
+  font-size: 0.75rem;
+
+  img {
+    display: block;
+    width: 160px;
+    height: 160px;
+    image-rendering: pixelated;
+    margin: 0 auto 4px;
+  }
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 24px;
+}
+
+.lines {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th,
+  td {
+    border: 1px solid #555;
+    padding: 4px 6px;
+    text-align: left;
+  }
+
+  .num {
+    text-align: right;
+  }
+}
+
+.signatures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 48px;
+  font-size: 0.8rem;
+  text-align: center;
+
+  div {
+    border-top: 1px solid #000;
+    padding-top: 4px;
+  }
+}
+
+.foot {
+  margin-top: 16px;
+  font-size: 0.75rem;
+  color: #444;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  :host {
+    padding: 0;
+  }
+
+  .sheet {
+    border: none;
+    padding: 0;
+    max-width: none;
+  }
+
+  .lines tr {
+    break-inside: avoid;
+  }
+}

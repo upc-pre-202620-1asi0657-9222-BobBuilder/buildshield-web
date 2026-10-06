@@ -1,0 +1,110 @@
+<section class="page">
+  <div class="page-header">
+    <h1>Despacho</h1>
+    <a class="btn" routerLink="/dispatches">Volver</a>
+  </div>
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+  @if (success()) {
+    <p class="alert alert-success" role="status">{{ success() }}</p>
+  }
+
+  @if (dispatch(); as d) {
+    <div class="card">
+      <p>
+        <strong>{{ d.code ?? d.id.slice(0, 8) }}</strong>
+        <span [class]="'badge ' + badge(d.status)">{{ label(d) }}</span>
+      </p>
+      <p><strong>Pedido:</strong> <a [routerLink]="['/orders', d.orderId]">{{ d.orderId.slice(0, 8) }}</a></p>
+      @if (d.departedAt) {
+        <p><strong>Salida:</strong> {{ d.departedAt | date: 'dd/MM/yyyy HH:mm' }}</p>
+      }
+      <table class="table">
+        <thead><tr><th>SKU</th><th>Material</th><th class="num">Cantidad</th></tr></thead>
+        <tbody>
+          @for (line of d.lines; track line.id) {
+            <tr>
+              <td data-label="SKU">{{ line.sku }}</td>
+              <td data-label="Material">{{ line.materialName ?? '-' }}</td>
+              <td data-label="Cantidad" class="num">{{ line.quantity | number: '1.0-3' }} {{ line.unit }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <div class="form-actions">
+        <a class="btn" [routerLink]="['/dispatches', d.id, 'manifest']" target="_blank">Ver manifiesto</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>1. Transportista</h2>
+      <form [formGroup]="carrierForm" (ngSubmit)="saveCarrier()" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="carrierName">Empresa o conductor</label>
+            <input id="carrierName" formControlName="carrierName" />
+          </div>
+          <div class="field">
+            <label for="carrierDocument">DNI o RUC</label>
+            <input id="carrierDocument" formControlName="carrierDocument" inputmode="numeric" maxlength="11" />
+            @if (carrierForm.controls.carrierDocument.touched && carrierForm.controls.carrierDocument.invalid) {
+              <span class="error">8 dígitos (DNI) u 11 dígitos (RUC).</span>
+            }
+          </div>
+          <div class="field">
+            <label for="plate">Placa</label>
+            <input id="plate" formControlName="plate" maxlength="7" placeholder="ABC-123" />
+            @if (carrierForm.controls.plate.touched && carrierForm.controls.plate.invalid) {
+              <span class="error">Formato de placa: ABC-123.</span>
+            }
+          </div>
+        </div>
+        @if (preparing()) {
+          <div class="form-actions">
+            <button class="btn" type="submit" [disabled]="busy()">Guardar transportista</button>
+          </div>
+        }
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>2. Pesaje de salida</h2>
+      <form [formGroup]="weighingForm" (ngSubmit)="saveWeighing()" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="grossKg">Peso bruto (kg)</label>
+            <input id="grossKg" type="number" inputmode="decimal" min="0" step="0.001" formControlName="grossKg" />
+          </div>
+          <div class="field">
+            <label for="tareKg">Tara (kg)</label>
+            <input id="tareKg" type="number" inputmode="decimal" min="0" step="0.001" formControlName="tareKg" />
+          </div>
+          <div class="field full">
+            <label for="ticket">URL de la foto del ticket de balanza (opcional)</label>
+            <input id="ticket" type="url" formControlName="ticketPhotoUrl" />
+          </div>
+        </div>
+        <p><strong>Peso neto:</strong> {{ netKg() | number: '1.0-3' }} kg</p>
+        @if (preparing()) {
+          <div class="form-actions">
+            <button class="btn" type="submit" [disabled]="busy()">Registrar pesaje</button>
+          </div>
+        }
+      </form>
+    </div>
+
+    @if (preparing()) {
+      <div class="card">
+        <h2>3. Salida</h2>
+        <p class="muted">Con transportista y pesaje registrados, el despacho pasa a «En tránsito».</p>
+        <button class="btn btn-primary btn-block" type="button" (click)="depart()" [disabled]="!canDepart() || busy()">
+          Despachar
+        </button>
+      </div>
+    }
+  } @else if (!error()) {
+    <p class="muted">Cargando…</p>
+  }
+</section>

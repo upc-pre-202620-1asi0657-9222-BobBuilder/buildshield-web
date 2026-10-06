@@ -1,0 +1,113 @@
+<div class="toolbar no-print">
+  <button class="btn" type="button" (click)="back()">Volver</button>
+  <button class="btn btn-primary" type="button" (click)="print()" [disabled]="!manifest()">Imprimir</button>
+</div>
+
+@if (error()) {
+  <p class="alert alert-error sheet" role="alert">{{ error() }}</p>
+}
+
+@if (manifest(); as m) {
+  <article class="sheet">
+    <header class="head">
+      <div>
+        <p class="brand">Build<strong>Shield</strong></p>
+        <h1>Manifiesto de despacho</h1>
+        <p class="code">{{ m.code ?? m.id }}</p>
+        <p class="status">Estado: {{ label(m) }}</p>
+      </div>
+      <figure class="qr">
+        @if (qrSrc(); as src) {
+          <img [src]="src" alt="Código QR del despacho" width="160" height="160" />
+        }
+        <figcaption>
+          Escanear en obra para abrir la recepción
+          @if (simulated) {
+            <br /><em>QR simulado (vista previa)</em>
+          }
+        </figcaption>
+      </figure>
+    </header>
+
+    <section class="grid">
+      <div>
+        <h2>Origen</h2>
+        <p>{{ m.warehouseName ?? '-' }}</p>
+        @if (m.warehouseAddress) {
+          <p class="muted">{{ m.warehouseAddress }}</p>
+        }
+      </div>
+      <div>
+        <h2>Destino</h2>
+        <p>{{ m.worksiteName ?? '-' }}</p>
+        @if (m.worksiteAddress) {
+          <p class="muted">{{ m.worksiteAddress }}</p>
+        }
+      </div>
+      <div>
+        <h2>Pedido</h2>
+        <p>{{ m.orderId }}</p>
+      </div>
+      <div>
+        <h2>Salida</h2>
+        <p>{{ m.departedAt ? (m.departedAt | date: 'dd/MM/yyyy HH:mm') : 'Pendiente' }}</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Materiales</h2>
+      <table class="lines">
+        <thead>
+          <tr><th>#</th><th>SKU</th><th>Material</th><th class="num">Cantidad</th><th>Unidad</th></tr>
+        </thead>
+        <tbody>
+          @for (line of m.lines; track line.id; let i = $index) {
+            <tr>
+              <td>{{ i + 1 }}</td>
+              <td>{{ line.sku }}</td>
+              <td>{{ line.materialName ?? '-' }}</td>
+              <td class="num">{{ line.quantity | number: '1.0-3' }}</td>
+              <td>{{ line.unit }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section class="grid">
+      <div>
+        <h2>Transportista</h2>
+        @if (m.carrier; as c) {
+          <p>{{ c.carrierName }}</p>
+          <p>Documento: {{ c.carrierDocument }}</p>
+          <p>Placa: {{ c.plate }}</p>
+        } @else {
+          <p class="muted">Sin registrar</p>
+        }
+      </div>
+      <div>
+        <h2>Pesaje de salida</h2>
+        @if (m.departureWeighing; as w) {
+          <p>Bruto: {{ w.grossKg | number: '1.0-3' }} kg</p>
+          <p>Tara: {{ w.tareKg | number: '1.0-3' }} kg</p>
+          <p><strong>Neto: {{ netKg(m) | number: '1.0-3' }} kg</strong></p>
+          @if (w.ticketPhotoUrl) {
+            <p class="muted">Ticket: {{ w.ticketPhotoUrl }}</p>
+          }
+        } @else {
+          <p class="muted">Sin registrar</p>
+        }
+      </div>
+    </section>
+
+    <section class="signatures">
+      <div>Despachado por (almacén)</div>
+      <div>Transportista</div>
+      <div>Recibido por (obra)</div>
+    </section>
+
+    <footer class="foot">Impreso el {{ printedAt | date: 'dd/MM/yyyy HH:mm' }}</footer>
+  </article>
+} @else if (!error()) {
+  <p class="muted sheet">Cargando…</p>
+}
