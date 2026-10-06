@@ -15,7 +15,7 @@ export function statusBadgeClass(status: string): string {
     case 'CANCELLED':
       return 'badge-bad';
     case 'REGISTERED':
-    case 'PREPARING':
+    case 'PREPARED':
     case 'IN_TRANSIT':
     case 'PARTIALLY_FULFILLED':
       return 'badge-warn';

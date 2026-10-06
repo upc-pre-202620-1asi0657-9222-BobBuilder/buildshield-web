@@ -1,23 +1,35 @@
 import {HttpClient, HttpContext, HttpHeaders, HttpParams} from '@angular/common/http';
 import {Injectable, inject} from '@angular/core';
-import {Observable, map} from 'rxjs';
+import {Observable, catchError, throwError} from 'rxjs';
 
 import {APP_ENV} from '../config/app-env';
+import {ApiError} from '../http/api-error';
 import {RETRY_OBSERVER, RetryObserver} from '../http/http-context';
 import {IDEMPOTENCY_HEADER} from '../http/idempotency.interceptor';
 import {
-  Carrier,
-  ComparisonRow,
+  CarrierRequest,
+  Comparison,
   CreateDispatchRequest,
-  DepartureWeighing,
   Dispatch,
   DispatchManifest,
   Reception,
+  WeighingRequest,
 } from '../models/logistics';
-import {DispatchFilter, LogisticsApi, normalizeComparison} from './logistics-api';
+import {DispatchFilter, LogisticsApi} from './logistics-api';
+
+export const RECEPTION_ALREADY_EXISTS = 'RECEPTION_ALREADY_EXISTS';
 
 function keyHeaders(idempotencyKey?: string): HttpHeaders | undefined {
   return idempotencyKey ? new HttpHeaders({[IDEMPOTENCY_HEADER]: idempotencyKey}) : undefined;
+}
+
+/** Id de la recepción existente que el backend envía en el 409 RECEPTION_ALREADY_EXISTS. */
+export function existingReceptionId(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.code !== RECEPTION_ALREADY_EXISTS) {
+    return null;
+  }
+  const detail = error.details.find((d) => d.field === 'receptionId') ?? error.details[0];
+  return detail?.message?.trim() || null;
 }
 
 /** Despachos y recepciones contra buildshield-core. */
@@ -43,15 +55,18 @@ export class HttpLogisticsApi extends LogisticsApi {
     return this.http.get<Dispatch>(`${this.base}/dispatches/${id}`);
   }
 
-  override createDispatch(request: CreateDispatchRequest): Observable<Dispatch> {
-    return this.http.post<Dispatch>(`${this.base}/dispatches`, request);
+  /** Requiere Idempotency-Key: la pantalla pasa la suya o la genera el interceptor. */
+  override createDispatch(request: CreateDispatchRequest, idempotencyKey?: string): Observable<Dispatch> {
+    return this.http.post<Dispatch>(`${this.base}/dispatches`, request, {
+      headers: keyHeaders(idempotencyKey),
+    });
   }
 
-  override setCarrier(id: string, carrier: Carrier): Observable<Dispatch> {
+  override setCarrier(id: string, carrier: CarrierRequest): Observable<Dispatch> {
     return this.http.patch<Dispatch>(`${this.base}/dispatches/${id}/carrier`, carrier);
   }
 
-  override registerDepartureWeighing(id: string, weighing: DepartureWeighing): Observable<Dispatch> {
+  override registerDepartureWeighing(id: string, weighing: WeighingRequest): Observable<Dispatch> {
     return this.http.post<Dispatch>(`${this.base}/dispatches/${id}/departure-weighing`, weighing);
   }
 
@@ -66,7 +81,16 @@ export class HttpLogisticsApi extends LogisticsApi {
   }
 
   override openReception(dispatchId: string): Observable<Reception> {
-    return this.http.post<Reception>(`${this.base}/receptions`, {dispatchId});
+    return this.http.post<Reception>(`${this.base}/receptions`, {dispatchId}).pipe(
+      catchError((error: unknown) => {
+        const existing = existingReceptionId(error);
+        return existing ? this.getReception(existing) : throwError(() => error);
+      }),
+    );
+  }
+
+  override getReception(id: string): Observable<Reception> {
+    return this.http.get<Reception>(`${this.base}/receptions/${id}`);
   }
 
   override saveReceptionLine(
@@ -82,10 +106,8 @@ export class HttpLogisticsApi extends LogisticsApi {
     );
   }
 
-  override getComparison(receptionId: string): Observable<ComparisonRow[]> {
-    return this.http
-      .get<unknown>(`${this.base}/receptions/${receptionId}/comparison`)
-      .pipe(map(normalizeComparison));
+  override getComparison(receptionId: string): Observable<Comparison> {
+    return this.http.get<Comparison>(`${this.base}/receptions/${receptionId}/comparison`);
   }
 
   override confirmReception(receptionId: string, idempotencyKey?: string): Observable<Reception> {

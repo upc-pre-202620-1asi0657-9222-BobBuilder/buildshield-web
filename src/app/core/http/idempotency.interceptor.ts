@@ -9,6 +9,7 @@ const IDEMPOTENT_POST_PATHS: readonly RegExp[] = [
   /\/stock\/entries$/,
   /\/orders$/,
   /\/orders\/[^/]+\/(approve|reject)$/,
+  /\/dispatches$/,
   /\/dispatches\/[^/]+\/depart$/,
   /\/receptions\/[^/]+\/confirm$/,
 ];

@@ -31,7 +31,10 @@ const CODE_MESSAGES: Readonly<Record<string, string>> = {
   RUC_ALREADY_REGISTERED: 'Ese RUC ya está registrado.',
   INVALID_RUC: 'El RUC debe tener 11 dígitos.',
   WEAK_PASSWORD: 'La contraseña debe tener de 8 a 72 caracteres, con al menos una letra y un número.',
-  INSUFFICIENT_STOCK: 'No hay stock suficiente en el almacén para atender esa cantidad.',
+  INSUFFICIENT_STOCK:
+    'No hay stock suficiente en el almacén para reservar el pedido. Registra una entrada de stock e inténtalo de nuevo.',
+  RECEPTION_ALREADY_EXISTS: 'El despacho ya tiene una recepción abierta.',
+  TOKEN_REVOKED: 'Tu sesión fue cerrada porque cambió tu usuario. Vuelve a iniciar sesión.',
   DISPATCH_EXCEEDS_PENDING: 'La cantidad despachada supera lo pendiente del pedido.',
   INVALID_ORDER_TRANSITION: 'El pedido ya no está en un estado que permita esa acción.',
   IDEMPOTENCY_IN_PROGRESS: 'La operación anterior aún se está procesando. Espera unos segundos.',
@@ -124,4 +127,13 @@ export function isTransientNetworkError(error: unknown): boolean {
       error.status === 503 || error.status === 504;
   }
   return false;
+}
+
+/**
+ * Indica si conviene reusar el Idempotency-Key al reintentar: sí ante fallas
+ * de red o del servidor (la operación pudo aplicarse); no ante un rechazo de
+ * negocio (4xx), porque el backend repetiría la misma respuesta guardada.
+ */
+export function shouldReuseIdempotencyKey(error: ApiError): boolean {
+  return error.status === 0 || error.status >= 500;
 }

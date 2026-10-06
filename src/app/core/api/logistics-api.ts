@@ -2,13 +2,13 @@ import {Observable} from 'rxjs';
 
 import {RetryObserver} from '../http/http-context';
 import {
-  Carrier,
-  ComparisonRow,
+  CarrierRequest,
+  Comparison,
   CreateDispatchRequest,
-  DepartureWeighing,
   Dispatch,
   DispatchManifest,
   Reception,
+  WeighingRequest,
 } from '../models/logistics';
 
 export interface DispatchFilter {
@@ -26,37 +26,23 @@ export abstract class LogisticsApi {
 
   abstract listDispatches(filter?: DispatchFilter): Observable<Dispatch[]>;
   abstract getDispatch(id: string): Observable<Dispatch>;
-  abstract createDispatch(request: CreateDispatchRequest): Observable<Dispatch>;
-  abstract setCarrier(id: string, carrier: Carrier): Observable<Dispatch>;
-  abstract registerDepartureWeighing(id: string, weighing: DepartureWeighing): Observable<Dispatch>;
+  abstract createDispatch(request: CreateDispatchRequest, idempotencyKey?: string): Observable<Dispatch>;
+  abstract setCarrier(id: string, carrier: CarrierRequest): Observable<Dispatch>;
+  abstract registerDepartureWeighing(id: string, weighing: WeighingRequest): Observable<Dispatch>;
   abstract depart(id: string, idempotencyKey?: string): Observable<Dispatch>;
   abstract getManifest(id: string): Observable<DispatchManifest>;
 
+  /** Abre la recepción del despacho; si ya existe, devuelve la existente. */
   abstract openReception(dispatchId: string): Observable<Reception>;
+  abstract getReception(id: string): Observable<Reception>;
   abstract saveReceptionLine(
     receptionId: string,
     lineId: string,
     receivedQty: number,
     onRetry?: RetryObserver,
   ): Observable<unknown>;
-  abstract getComparison(receptionId: string): Observable<ComparisonRow[]>;
+  abstract getComparison(receptionId: string): Observable<Comparison>;
   abstract confirmReception(receptionId: string, idempotencyKey?: string): Observable<Reception>;
-}
-
-/** Acepta la comparación como arreglo o envuelta en {lines|items|materials}. */
-export function normalizeComparison(body: unknown): ComparisonRow[] {
-  if (Array.isArray(body)) {
-    return body as ComparisonRow[];
-  }
-  if (typeof body === 'object' && body !== null) {
-    const record = body as Record<string, unknown>;
-    for (const key of ['lines', 'items', 'materials', 'rows']) {
-      if (Array.isArray(record[key])) {
-        return record[key] as ComparisonRow[];
-      }
-    }
-  }
-  return [];
 }
 
 /** Merma = (despachado - recibido) / despachado. */

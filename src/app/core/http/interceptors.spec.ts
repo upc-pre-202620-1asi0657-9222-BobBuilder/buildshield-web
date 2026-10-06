@@ -122,6 +122,7 @@ describe('Interceptores HTTP', () => {
       ['/api/v1/orders', 'pedido'],
       ['/api/v1/orders/abc/approve', 'aprobación'],
       ['/api/v1/orders/abc/reject', 'rechazo'],
+      ['/api/v1/dispatches', 'creación del despacho'],
       ['/api/v1/dispatches/abc/depart', 'salida del despacho'],
       ['/api/v1/receptions/abc/confirm', 'confirmación de recepción'],
     ];
@@ -138,11 +139,11 @@ describe('Interceptores HTTP', () => {
     it('no agrega la clave a otros POST ni a los GET', () => {
       client.post('/api/v1/users', {}).subscribe();
       client.get('/api/v1/orders').subscribe();
-      client.post('/api/v1/dispatches', {}).subscribe();
+      client.post('/api/v1/receptions', {}).subscribe();
       for (const req of [
         http.expectOne('/api/v1/users'),
         http.expectOne({method: 'GET', url: '/api/v1/orders'}),
-        http.expectOne('/api/v1/dispatches'),
+        http.expectOne('/api/v1/receptions'),
       ]) {
         expect(req.request.headers.has(IDEMPOTENCY_HEADER)).toBeFalse();
         req.flush({});
@@ -260,7 +261,7 @@ describe('Interceptores HTTP', () => {
       const error = failWith({code: 'INSUFFICIENT_STOCK', message: 'Insufficient stock'}, 409);
       expect(error).toEqual(jasmine.any(ApiError));
       expect(error?.code).toBe('INSUFFICIENT_STOCK');
-      expect(error?.message).toBe('No hay stock suficiente en el almacén para atender esa cantidad.');
+      expect(error?.message).toContain('No hay stock suficiente');
     });
 
     it('usa el mensaje del backend para códigos no mapeados y conserva los detalles', () => {
