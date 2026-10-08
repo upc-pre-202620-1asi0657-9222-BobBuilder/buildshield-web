@@ -12,6 +12,11 @@ const IDEMPOTENT_POST_PATHS: readonly RegExp[] = [
   /\/dispatches$/,
   /\/dispatches\/[^/]+\/depart$/,
   /\/receptions\/[^/]+\/confirm$/,
+  // Sprint 3: los POST que crean o cambian estado aceptan la clave.
+  /\/dispatches\/[^/]+\/(cancel|incidents)$/,
+  /\/receptions\/[^/]+\/(partial|arrival-weighing)$/,
+  /\/discrepancies$/,
+  /\/discrepancies\/[^/]+\/(response|accept|escalate|resolve)$/,
 ];
 
 export function requiresIdempotencyKey(req: HttpRequest<unknown>): boolean {

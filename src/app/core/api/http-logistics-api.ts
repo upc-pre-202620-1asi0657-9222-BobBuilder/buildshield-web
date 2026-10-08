@@ -7,12 +7,22 @@ import {ApiError} from '../http/api-error';
 import {RETRY_OBSERVER, RetryObserver} from '../http/http-context';
 import {IDEMPOTENCY_HEADER} from '../http/idempotency.interceptor';
 import {
+  CreateDiscrepancyRequest,
+  Discrepancy,
+  DiscrepancyFilter,
+  Evidence,
+} from '../models/discrepancy';
+import {
+  ArrivalWeighing,
   CarrierRequest,
   Comparison,
   CreateDispatchRequest,
+  Custody,
   Dispatch,
   DispatchManifest,
+  IncidentRequest,
   Reception,
+  TransitIncident,
   WeighingRequest,
 } from '../models/logistics';
 import {DispatchFilter, LogisticsApi} from './logistics-api';
@@ -112,6 +122,122 @@ export class HttpLogisticsApi extends LogisticsApi {
 
   override confirmReception(receptionId: string, idempotencyKey?: string): Observable<Reception> {
     return this.http.post<Reception>(`${this.base}/receptions/${receptionId}/confirm`, null, {
+      headers: keyHeaders(idempotencyKey),
+    });
+  }
+
+  // Sprint 3: despacho -------------------------------------------------------
+
+  override cancelDispatch(id: string, reason: string, idempotencyKey?: string): Observable<Dispatch> {
+    return this.http.post<Dispatch>(`${this.base}/dispatches/${id}/cancel`, {reason}, {
+      headers: keyHeaders(idempotencyKey),
+    });
+  }
+
+  override registerIncident(
+    dispatchId: string,
+    incident: IncidentRequest,
+    idempotencyKey?: string,
+  ): Observable<TransitIncident> {
+    return this.http.post<TransitIncident>(`${this.base}/dispatches/${dispatchId}/incidents`, incident, {
+      headers: keyHeaders(idempotencyKey),
+    });
+  }
+
+  override listIncidents(dispatchId: string): Observable<TransitIncident[]> {
+    return this.http.get<TransitIncident[]>(`${this.base}/dispatches/${dispatchId}/incidents`);
+  }
+
+  override getDispatchByManifest(code: string): Observable<Dispatch> {
+    return this.http.get<Dispatch>(`${this.base}/dispatches/by-manifest/${encodeURIComponent(code)}`);
+  }
+
+  override getCustody(dispatchId: string): Observable<Custody> {
+    return this.http.get<Custody>(`${this.base}/dispatches/${dispatchId}/custody`);
+  }
+
+  // Sprint 3: recepción ------------------------------------------------------
+
+  override openReceptionByManifest(manifestCode: string): Observable<Reception> {
+    return this.http.post<Reception>(`${this.base}/receptions`, {manifestCode}).pipe(
+      catchError((error: unknown) => {
+        const existing = existingReceptionId(error);
+        return existing ? this.getReception(existing) : throwError(() => error);
+      }),
+    );
+  }
+
+  override savePartialReception(receptionId: string, idempotencyKey?: string): Observable<Reception> {
+    return this.http.post<Reception>(`${this.base}/receptions/${receptionId}/partial`, null, {
+      headers: keyHeaders(idempotencyKey),
+    });
+  }
+
+  override registerArrivalWeighing(
+    receptionId: string,
+    weighing: WeighingRequest,
+    idempotencyKey?: string,
+  ): Observable<ArrivalWeighing> {
+    return this.http.post<ArrivalWeighing>(
+      `${this.base}/receptions/${receptionId}/arrival-weighing`,
+      weighing,
+      {headers: keyHeaders(idempotencyKey)},
+    );
+  }
+
+  // Sprint 3: discrepancias --------------------------------------------------
+
+  override listDiscrepancies(filter: DiscrepancyFilter = {}): Observable<Discrepancy[]> {
+    let params = new HttpParams();
+    for (const key of ['status', 'worksiteId', 'dispatchId'] as const) {
+      const value = filter[key];
+      if (value) {
+        params = params.set(key, value);
+      }
+    }
+    return this.http.get<Discrepancy[]>(`${this.base}/discrepancies`, {params});
+  }
+
+  override getDiscrepancy(id: string): Observable<Discrepancy> {
+    return this.http.get<Discrepancy>(`${this.base}/discrepancies/${id}`);
+  }
+
+  override createDiscrepancy(request: CreateDiscrepancyRequest, idempotencyKey?: string): Observable<Discrepancy> {
+    return this.http.post<Discrepancy>(`${this.base}/discrepancies`, request, {
+      headers: keyHeaders(idempotencyKey),
+    });
+  }
+
+  /** Multipart con el campo `file`; el navegador pone el Content-Type con su boundary. */
+  override uploadEvidence(discrepancyId: string, file: File): Observable<Evidence> {
+    const body = new FormData();
+    body.append('file', file, file.name);
+    return this.http.post<Evidence>(`${this.base}/discrepancies/${discrepancyId}/evidences`, body);
+  }
+
+  override respondDiscrepancy(id: string, text: string, idempotencyKey?: string): Observable<Discrepancy> {
+    return this.discrepancyAction(id, 'response', {text}, idempotencyKey);
+  }
+
+  override acceptDiscrepancy(id: string, idempotencyKey?: string): Observable<Discrepancy> {
+    return this.discrepancyAction(id, 'accept', null, idempotencyKey);
+  }
+
+  override escalateDiscrepancy(id: string, reason: string, idempotencyKey?: string): Observable<Discrepancy> {
+    return this.discrepancyAction(id, 'escalate', {reason}, idempotencyKey);
+  }
+
+  override resolveDiscrepancy(id: string, decision: string, idempotencyKey?: string): Observable<Discrepancy> {
+    return this.discrepancyAction(id, 'resolve', {decision}, idempotencyKey);
+  }
+
+  private discrepancyAction(
+    id: string,
+    action: 'response' | 'accept' | 'escalate' | 'resolve',
+    body: object | null,
+    idempotencyKey?: string,
+  ): Observable<Discrepancy> {
+    return this.http.post<Discrepancy>(`${this.base}/discrepancies/${id}/${action}`, body, {
       headers: keyHeaders(idempotencyKey),
     });
   }

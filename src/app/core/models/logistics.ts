@@ -1,4 +1,8 @@
-/** Contrato del Sprint 2 (buildshield-core 1.1.0): despachos, manifiesto y recepciones. */
+/**
+ * Contrato de despachos, manifiesto y recepciones: Sprint 2 (buildshield-core
+ * 1.1.0) más el Sprint 3 (anulación, incidencias, custodia, recepción parcial y
+ * pesaje de llegada).
+ */
 
 export type DispatchStatus = 'PREPARED' | 'IN_TRANSIT' | 'RECEIVED' | 'CANCELLED';
 export type DispatchType = 'COMPLETE' | 'PARTIAL';
@@ -64,6 +68,11 @@ export interface Dispatch {
   carrier: CarrierView | null;
   departureWeighing: WeighingView | null;
   lines: DispatchLine[];
+  /** Sprint 3 (US25): fecha y motivo de la anulación. */
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
+  /** Sprint 3 (US31): incidencias registradas en ruta. */
+  incidentCount?: number;
 }
 
 export interface CreateDispatchRequest {
@@ -104,7 +113,7 @@ export interface DispatchManifest {
   qrCodePngBase64: string;
 }
 
-export type ReceptionStatus = 'IN_PROGRESS' | 'CONFIRMED';
+export type ReceptionStatus = 'IN_PROGRESS' | 'PARTIALLY_RECEIVED' | 'CONFIRMED';
 
 export interface ReceptionLine {
   id: string;
@@ -127,6 +136,11 @@ export interface Reception {
   confirmedBy: string | null;
   confirmedAt: string | null;
   lines: ReceptionLine[];
+  /** Sprint 3 (US38): recepciones parciales registradas. */
+  partialCount?: number;
+  lastPartialAt?: string | null;
+  /** Sprint 3 (US29): pesaje de llegada, o null si aún no se registra. */
+  arrivalWeighing?: ArrivalWeighing | null;
 }
 
 /** Línea de GET /receptions/{id}/comparison. */
@@ -158,4 +172,74 @@ export interface Comparison {
 
 export function dispatchStatusLabel(dispatch: Pick<Dispatch, 'status' | 'statusLabel'>): string {
   return DISPATCH_STATUS_LABELS[dispatch.status] ?? dispatch.statusLabel ?? dispatch.status;
+}
+
+// Sprint 3 -----------------------------------------------------------------
+
+/** Cuerpo de POST /dispatches/{id}/cancel (US25). */
+export interface CancelDispatchRequest {
+  reason: string;
+}
+
+export type IncidentType = 'DELAY' | 'VEHICLE_FAILURE' | 'DAMAGE' | 'ACCIDENT' | 'ROUTE_CHANGE' | 'OTHER';
+
+export const INCIDENT_TYPE_LABELS: Readonly<Record<IncidentType, string>> = {
+  DELAY: 'Retraso',
+  VEHICLE_FAILURE: 'Falla del vehículo',
+  DAMAGE: 'Daño de la carga',
+  ACCIDENT: 'Accidente',
+  ROUTE_CHANGE: 'Cambio de ruta',
+  OTHER: 'Otra',
+};
+
+export const INCIDENT_TYPES = Object.keys(INCIDENT_TYPE_LABELS) as IncidentType[];
+
+/** Cuerpo de POST /dispatches/{id}/incidents (US32). */
+export interface IncidentRequest {
+  type: IncidentType;
+  observation: string;
+}
+
+export interface TransitIncident {
+  id: string;
+  dispatchId: string;
+  type: IncidentType | string;
+  typeLabel?: string;
+  observation: string;
+  reportedBy: string;
+  reportedAt: string;
+}
+
+export function incidentTypeLabel(incident: Pick<TransitIncident, 'type' | 'typeLabel'>): string {
+  return INCIDENT_TYPE_LABELS[incident.type as IncidentType] ?? incident.typeLabel ?? incident.type;
+}
+
+/** Evento de GET /dispatches/{id}/custody (US39). */
+export interface CustodyEvent {
+  at: string;
+  type: string;
+  label: string;
+  actorId: string | null;
+  actorName: string | null;
+  detail: string | null;
+}
+
+export interface Custody {
+  dispatchId: string;
+  manifestCode: string;
+  events: CustodyEvent[];
+}
+
+/** Respuesta de POST /receptions/{id}/arrival-weighing (US29). */
+export interface ArrivalWeighing {
+  grossKg: number;
+  tareKg: number;
+  netKg: number;
+  /** null cuando el despacho no tuvo pesaje de salida. */
+  departureNetKg: number | null;
+  differenceKg: number | null;
+  differencePercent: number | null;
+  tolerancePercent: number;
+  withinTolerance: boolean | null;
+  ticketPhotoUrl?: string | null;
 }

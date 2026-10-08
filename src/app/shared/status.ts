@@ -11,15 +11,21 @@ export function statusBadgeClass(status: string): string {
     case 'CLOSED':
     case 'RECEIVED':
     case 'CONFIRMED':
+    case 'ACCEPTED':
+    case 'RESOLVED':
       return 'badge-ok';
     case 'CANCELLED':
+    case 'ESCALATED':
       return 'badge-bad';
     case 'REGISTERED':
     case 'PREPARED':
     case 'PARTIALLY_FULFILLED':
+    case 'PARTIALLY_RECEIVED':
+    case 'OPEN':
       return 'badge-warn';
     case 'IN_TRANSIT':
     case 'IN_REVIEW':
+    case 'RESPONDED':
       return 'badge-info';
     default:
       return '';

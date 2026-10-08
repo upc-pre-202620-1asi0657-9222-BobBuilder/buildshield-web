@@ -4,13 +4,32 @@ import {Observable, catchError, defer, delay, forkJoin, map, of, switchMap, thro
 import {ApiError} from '../http/api-error';
 import {RetryObserver} from '../http/http-context';
 import {
+  CLOSED_DISCREPANCY_STATUSES,
+  CreateDiscrepancyRequest,
+  DISCREPANCY_STATUS_LABELS,
+  DISCREPANCY_TYPE_LABELS,
+  Discrepancy,
+  DiscrepancyFilter,
+  DiscrepancyStatus,
+  DiscrepancyType,
+  EVIDENCE_MAX_BYTES,
+  EVIDENCE_MIME_TYPES,
+  Evidence,
+} from '../models/discrepancy';
+import {
+  ArrivalWeighing,
   CarrierRequest,
   Comparison,
   ComparisonRow,
   CreateDispatchRequest,
+  Custody,
+  CustodyEvent,
   Dispatch,
   DispatchManifest,
+  INCIDENT_TYPE_LABELS,
+  IncidentRequest,
   Reception,
+  TransitIncident,
   WeighingRequest,
 } from '../models/logistics';
 import {Material} from '../models/organization';
@@ -37,7 +56,14 @@ interface MockStore {
   receptions: Reception[];
   materials: MaterialInfo[];
   sites: Array<{id: string; name: string; address: string}>;
+  // Sprint 3
+  incidents: TransitIncident[];
+  discrepancies: Discrepancy[];
+  /** Cantidad ya ingresada al stock por línea de recepción en parciales. */
+  partials: Record<string, number>;
 }
+
+const DEMO_USER = 'Usuario demo';
 
 /**
  * Simulación en memoria (persistida en localStorage) de los endpoints de
@@ -245,12 +271,19 @@ export class MockLogisticsApi extends LogisticsApi {
   ): Observable<unknown> {
     return this.respond(() => {
       const reception = this.findReception(receptionId);
-      if (reception.status !== 'IN_PROGRESS') {
+      if (reception.status === 'CONFIRMED') {
         throw new ApiError(409, 'RECEPTION_CONFIRMED', 'La recepción ya fue confirmada.');
       }
       const line = reception.lines.find((l) => l.id === lineId);
       if (!line) {
         throw new ApiError(404, 'NOT_FOUND', 'No se encontró la línea de recepción.');
+      }
+      if (receivedQty < (this.store.partials[lineId] ?? 0)) {
+        throw new ApiError(
+          409,
+          'RECEIVED_BELOW_PARTIAL',
+          'La cantidad no puede ser menor a lo ya ingresado en una recepción parcial.',
+        );
       }
       line.receivedQty = receivedQty;
       line.shrinkagePercent = computeShrinkage(line.dispatchedQty, receivedQty).shrinkagePercent;
@@ -307,9 +340,335 @@ export class MockLogisticsApi extends LogisticsApi {
       const dispatch = this.findDispatch(reception.dispatchId);
       dispatch.status = 'RECEIVED';
       dispatch.receivedAt = reception.confirmedAt;
+      this.openAutomaticDiscrepancies(reception, dispatch);
       this.save();
       return structuredClone(reception);
     });
+  }
+
+  // Sprint 3: despacho -------------------------------------------------------
+
+  override cancelDispatch(id: string, reason: string): Observable<Dispatch> {
+    return this.respond(() => {
+      const dispatch = this.findPrepared(id);
+      requireText(reason, 3, 300, 'El motivo debe tener de 3 a 300 caracteres.');
+      dispatch.status = 'CANCELLED';
+      dispatch.cancelledAt = new Date().toISOString();
+      dispatch.cancellationReason = reason.trim();
+      this.save();
+      return structuredClone(dispatch);
+    });
+  }
+
+  override registerIncident(dispatchId: string, incident: IncidentRequest): Observable<TransitIncident> {
+    return this.respond(() => {
+      const dispatch = this.findDispatch(dispatchId);
+      if (dispatch.status !== 'IN_TRANSIT') {
+        throw new ApiError(409, 'DISPATCH_NOT_IN_TRANSIT', 'Solo se registran incidencias de despachos en tránsito.');
+      }
+      requireText(incident.observation, 3, 500, 'La observación debe tener de 3 a 500 caracteres.');
+      const created: TransitIncident = {
+        id: generateUuid(),
+        dispatchId,
+        type: incident.type,
+        typeLabel: INCIDENT_TYPE_LABELS[incident.type],
+        observation: incident.observation.trim(),
+        reportedBy: DEMO_USER,
+        reportedAt: new Date().toISOString(),
+      };
+      this.store.incidents.push(created);
+      dispatch.incidentCount = this.store.incidents.filter((i) => i.dispatchId === dispatchId).length;
+      this.save();
+      return structuredClone(created);
+    });
+  }
+
+  override listIncidents(dispatchId: string): Observable<TransitIncident[]> {
+    return this.respond(() =>
+      this.store.incidents
+        .filter((i) => i.dispatchId === dispatchId)
+        .sort((a, b) => a.reportedAt.localeCompare(b.reportedAt))
+        .map((i) => structuredClone(i)),
+    );
+  }
+
+  override getDispatchByManifest(code: string): Observable<Dispatch> {
+    return this.respond(() => {
+      const wanted = code.trim().toUpperCase();
+      const dispatch = this.store.dispatches.find((d) => d.manifestCode.toUpperCase() === wanted);
+      if (!dispatch) {
+        throw new ApiError(404, 'NOT_FOUND', 'No se encontró un despacho con ese código.');
+      }
+      return structuredClone(dispatch);
+    });
+  }
+
+  override getCustody(dispatchId: string): Observable<Custody> {
+    return this.respond(() => {
+      const d = this.findDispatch(dispatchId);
+      const events: CustodyEvent[] = [];
+      const add = (at: string | null | undefined, type: string, label: string, detail: string | null = null) => {
+        if (at) {
+          events.push({at, type, label, actorId: null, actorName: DEMO_USER, detail});
+        }
+      };
+      add(d.preparedAt, 'PREPARED', 'Despacho preparado');
+      if (d.carrier) {
+        add(d.preparedAt, 'CARRIER_ASSIGNED', 'Transportista asignado', `${d.carrier.name}, placa ${d.carrier.plate}`);
+      }
+      if (d.departureWeighing) {
+        add(
+          d.departureWeighing.weighedAt ?? d.preparedAt,
+          'DEPARTURE_WEIGHED',
+          'Pesaje de salida',
+          `Neto ${d.departureWeighing.netKg} kg`,
+        );
+      }
+      add(d.departedAt, 'DEPARTED', 'Salida del almacén');
+      for (const incident of this.store.incidents.filter((i) => i.dispatchId === d.id)) {
+        add(incident.reportedAt, 'INCIDENT', `Incidencia: ${incident.typeLabel ?? incident.type}`, incident.observation);
+      }
+      add(d.cancelledAt, 'CANCELLED', 'Despacho anulado', d.cancellationReason ?? null);
+      const reception = this.store.receptions.find((r) => r.dispatchId === d.id);
+      if (reception) {
+        add(d.departedAt, 'RECEPTION_OPENED', 'Recepción abierta en obra');
+        if (reception.arrivalWeighing) {
+          add(reception.lastPartialAt ?? reception.confirmedAt ?? d.departedAt, 'ARRIVAL_WEIGHED', 'Pesaje de llegada',
+            `Neto ${reception.arrivalWeighing.netKg} kg`);
+        }
+        add(reception.lastPartialAt, 'PARTIALLY_RECEIVED', 'Recepción parcial registrada');
+        add(reception.confirmedAt, 'RECEIVED', 'Recepción confirmada');
+      }
+      for (const disc of this.store.discrepancies.filter((x) => x.dispatchId === d.id)) {
+        add(disc.openedAt, 'DISCREPANCY_OPENED', `Discrepancia abierta: ${disc.sku}`, disc.observation);
+        add(disc.response?.at, 'DISCREPANCY_RESPONDED', 'Discrepancia respondida', disc.response?.text ?? null);
+        add(disc.escalation?.at, 'DISCREPANCY_ESCALATED', 'Discrepancia escalada', disc.escalation?.reason ?? null);
+        add(disc.resolution?.at, 'DISCREPANCY_RESOLVED', 'Discrepancia resuelta', disc.resolution?.decision ?? null);
+        if (disc.status === 'ACCEPTED') {
+          add(disc.response?.at, 'DISCREPANCY_ACCEPTED', 'Respuesta aceptada por la obra');
+        }
+      }
+      events.sort((a, b) => a.at.localeCompare(b.at));
+      return {dispatchId: d.id, manifestCode: d.manifestCode, events};
+    });
+  }
+
+  // Sprint 3: recepción ------------------------------------------------------
+
+  override openReceptionByManifest(manifestCode: string): Observable<Reception> {
+    return this.getDispatchByManifest(manifestCode).pipe(switchMap((d) => this.openReception(d.id)));
+  }
+
+  override savePartialReception(receptionId: string): Observable<Reception> {
+    return this.respond(() => {
+      const reception = this.findReception(receptionId);
+      if (reception.status === 'CONFIRMED') {
+        throw new ApiError(409, 'RECEPTION_CONFIRMED', 'La recepción ya fue confirmada.');
+      }
+      for (const line of reception.lines) {
+        this.store.partials[line.id] = line.receivedQty ?? 0;
+      }
+      reception.status = 'PARTIALLY_RECEIVED';
+      reception.partialCount = (reception.partialCount ?? 0) + 1;
+      reception.lastPartialAt = new Date().toISOString();
+      this.save();
+      return structuredClone(reception);
+    });
+  }
+
+  override registerArrivalWeighing(receptionId: string, weighing: WeighingRequest): Observable<ArrivalWeighing> {
+    return this.respond(() => {
+      if (weighing.grossKg <= weighing.tareKg) {
+        throw new ApiError(400, 'INVALID_WEIGHING', 'El peso bruto debe ser mayor que la tara.');
+      }
+      const reception = this.findReception(receptionId);
+      if (reception.arrivalWeighing) {
+        throw new ApiError(409, 'ARRIVAL_WEIGHING_ALREADY_RECORDED', 'El pesaje de llegada ya fue registrado.');
+      }
+      const dispatch = this.findDispatch(reception.dispatchId);
+      const netKg = round3(weighing.grossKg - weighing.tareKg);
+      const departureNetKg = dispatch.departureWeighing?.netKg ?? null;
+      const tolerances = reception.lines.map((l) => this.material(l.materialId).tolerancePercent);
+      const tolerancePercent = tolerances.length ? Math.min(...tolerances) : 0;
+      const differenceKg = departureNetKg === null ? null : round3(departureNetKg - netKg);
+      const differencePercent =
+        departureNetKg === null || differenceKg === null || departureNetKg === 0
+          ? null
+          : Math.round((differenceKg / departureNetKg) * 10000) / 100;
+      const result: ArrivalWeighing = {
+        grossKg: weighing.grossKg,
+        tareKg: weighing.tareKg,
+        netKg,
+        departureNetKg,
+        differenceKg,
+        differencePercent,
+        tolerancePercent,
+        withinTolerance: differencePercent === null ? null : Math.abs(differencePercent) <= tolerancePercent,
+        ticketPhotoUrl: weighing.ticketPhotoUrl ?? null,
+      };
+      reception.arrivalWeighing = result;
+      this.save();
+      return structuredClone(result);
+    });
+  }
+
+  // Sprint 3: discrepancias --------------------------------------------------
+
+  override listDiscrepancies(filter: DiscrepancyFilter = {}): Observable<Discrepancy[]> {
+    return this.respond(() =>
+      this.store.discrepancies
+        .filter((d) => !filter.status || d.status === filter.status)
+        .filter((d) => !filter.worksiteId || d.worksiteId === filter.worksiteId)
+        .filter((d) => !filter.dispatchId || d.dispatchId === filter.dispatchId)
+        .sort((a, b) => b.openedAt.localeCompare(a.openedAt))
+        .map((d) => structuredClone(d)),
+    );
+  }
+
+  override getDiscrepancy(id: string): Observable<Discrepancy> {
+    return this.respond(() => structuredClone(this.findDiscrepancy(id)));
+  }
+
+  override createDiscrepancy(request: CreateDiscrepancyRequest): Observable<Discrepancy> {
+    return this.respond(() => {
+      const reception = this.findReception(request.receptionId);
+      const duplicate = this.store.discrepancies.some(
+        (d) =>
+          d.receptionId === request.receptionId &&
+          d.materialId === request.materialId &&
+          d.type === request.type &&
+          !CLOSED_DISCREPANCY_STATUSES.includes(d.status),
+      );
+      if (duplicate) {
+        throw new ApiError(409, 'DISCREPANCY_ALREADY_OPEN', 'Ya hay una discrepancia abierta de ese tipo para el material.');
+      }
+      const created = this.newDiscrepancy(reception, request.materialId, request.type, request.quantity, null, request.observation);
+      this.store.discrepancies.unshift(created);
+      this.save();
+      return structuredClone(created);
+    });
+  }
+
+  override uploadEvidence(discrepancyId: string, file: File): Observable<Evidence> {
+    return this.respond(() => {
+      const discrepancy = this.findDiscrepancy(discrepancyId);
+      if (!EVIDENCE_MIME_TYPES.includes(file.type) || file.size > EVIDENCE_MAX_BYTES) {
+        throw new ApiError(400, 'INVALID_EVIDENCE', 'La foto debe ser JPG, PNG o WEBP de hasta 5 MB.');
+      }
+      const evidence: Evidence = {
+        id: generateUuid(),
+        // Solo vive mientras la pestaña esté abierta: la simulación no guarda archivos.
+        url: URL.createObjectURL(file),
+        fileName: file.name,
+        uploadedBy: DEMO_USER,
+        uploadedAt: new Date().toISOString(),
+      };
+      discrepancy.evidences.push(evidence);
+      this.save();
+      return structuredClone(evidence);
+    });
+  }
+
+  override respondDiscrepancy(id: string, text: string): Observable<Discrepancy> {
+    return this.transition(id, 'OPEN', 'RESPONDED', (d, at) => (d.response = {text: text.trim(), by: DEMO_USER, at}));
+  }
+
+  override acceptDiscrepancy(id: string): Observable<Discrepancy> {
+    return this.transition(id, 'RESPONDED', 'ACCEPTED', () => undefined);
+  }
+
+  override escalateDiscrepancy(id: string, reason: string): Observable<Discrepancy> {
+    return this.transition(id, 'RESPONDED', 'ESCALATED', (d, at) => (d.escalation = {reason: reason.trim(), by: DEMO_USER, at}));
+  }
+
+  override resolveDiscrepancy(id: string, decision: string): Observable<Discrepancy> {
+    return this.transition(id, 'ESCALATED', 'RESOLVED', (d, at) => (d.resolution = {decision: decision.trim(), by: DEMO_USER, at}));
+  }
+
+  private transition(
+    id: string,
+    from: DiscrepancyStatus,
+    to: DiscrepancyStatus,
+    apply: (d: Discrepancy, at: string) => void,
+  ): Observable<Discrepancy> {
+    return this.respond(() => {
+      const discrepancy = this.findDiscrepancy(id);
+      if (discrepancy.status !== from) {
+        throw new ApiError(409, 'INVALID_DISCREPANCY_TRANSITION', 'La discrepancia ya no está en un estado que permita esa acción.');
+      }
+      apply(discrepancy, new Date().toISOString());
+      discrepancy.status = to;
+      discrepancy.statusLabel = DISCREPANCY_STATUS_LABELS[to];
+      this.save();
+      return structuredClone(discrepancy);
+    });
+  }
+
+  /** Al confirmar: una discrepancia por línea fuera de tolerancia, sin duplicados. */
+  private openAutomaticDiscrepancies(reception: Reception, dispatch: Dispatch): void {
+    for (const line of reception.lines) {
+      const info = this.material(line.materialId);
+      const received = line.receivedQty ?? 0;
+      const {difference, shrinkagePercent} = computeShrinkage(line.dispatchedQty, received);
+      if (Math.abs(shrinkagePercent) <= info.tolerancePercent) {
+        continue;
+      }
+      const type: DiscrepancyType = received > line.dispatchedQty ? 'EXCESS' : 'SHORTAGE';
+      const exists = this.store.discrepancies.some(
+        (d) => d.receptionId === reception.id && d.materialId === line.materialId && d.type === type,
+      );
+      if (!exists) {
+        const created = this.newDiscrepancy(reception, line.materialId, type, Math.abs(difference), shrinkagePercent, null);
+        created.manifestCode = dispatch.manifestCode;
+        this.store.discrepancies.unshift(created);
+      }
+    }
+  }
+
+  private newDiscrepancy(
+    reception: Reception,
+    materialId: string,
+    type: DiscrepancyType,
+    quantity: number,
+    shrinkagePercent: number | null,
+    observation: string | null,
+  ): Discrepancy {
+    const info = this.material(materialId);
+    const dispatch = this.store.dispatches.find((d) => d.id === reception.dispatchId);
+    return {
+      id: generateUuid(),
+      organizationId: 'org-demo',
+      receptionId: reception.id,
+      dispatchId: reception.dispatchId,
+      manifestCode: dispatch?.manifestCode ?? '',
+      worksiteId: reception.worksiteId,
+      warehouseId: reception.warehouseId,
+      materialId,
+      sku: info.sku,
+      materialName: info.name,
+      type,
+      typeLabel: DISCREPANCY_TYPE_LABELS[type],
+      quantity,
+      shrinkagePercent,
+      tolerancePercent: info.tolerancePercent,
+      observation,
+      status: 'OPEN',
+      statusLabel: DISCREPANCY_STATUS_LABELS.OPEN,
+      openedBy: DEMO_USER,
+      openedAt: new Date().toISOString(),
+      response: null,
+      escalation: null,
+      resolution: null,
+      evidences: [],
+    };
+  }
+
+  private findDiscrepancy(id: string): Discrepancy {
+    const discrepancy = this.store.discrepancies.find((d) => d.id === id);
+    if (!discrepancy) {
+      throw new ApiError(404, 'NOT_FOUND', 'No se encontró la discrepancia.');
+    }
+    return discrepancy;
   }
 
   private respond<T>(work: () => T): Observable<T> {
@@ -383,7 +742,13 @@ function loadStore(): MockStore {
     if (raw) {
       const parsed = JSON.parse(raw) as MockStore;
       if (Array.isArray(parsed.dispatches) && Array.isArray(parsed.materials)) {
-        return parsed;
+        // Datos guardados por la simulación del Sprint 2: se completan los del Sprint 3.
+        return {
+          ...parsed,
+          incidents: parsed.incidents ?? [],
+          discrepancies: parsed.discrepancies ?? [],
+          partials: parsed.partials ?? {},
+        };
       }
     }
   } catch {
@@ -407,6 +772,9 @@ function seedStore(): MockStore {
     materials,
     sites: [warehouse, worksite],
     receptions: [],
+    incidents: [],
+    discrepancies: [],
+    partials: {},
     dispatches: [
       {
         id: generateUuid(),
@@ -471,4 +839,15 @@ function renderPseudoQr(seed: string): string {
     }
   }
   return canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
+}
+
+function requireText(value: string, min: number, max: number, message: string): void {
+  const length = (value ?? '').trim().length;
+  if (length < min || length > max) {
+    throw new ApiError(400, 'VALIDATION_ERROR', message);
+  }
+}
+
+function round3(value: number): number {
+  return Math.round(value * 1000) / 1000;
 }
