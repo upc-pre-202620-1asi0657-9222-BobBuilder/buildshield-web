@@ -1,10 +1,11 @@
-import {ComponentFixture, TestBed} from '@angular/core/testing';
+import {ComponentFixture, TestBed, fakeAsync, tick} from '@angular/core/testing';
 import {Router, provideRouter} from '@angular/router';
 import {of, throwError} from 'rxjs';
 
 import {LogisticsApi} from '../../core/api/logistics-api';
 import {ApiError} from '../../core/http/api-error';
-import {ArrivalWeighing, Reception} from '../../core/models/logistics';
+import {Discrepancy} from '../../core/models/discrepancy';
+import {ArrivalWeighing, Comparison, Reception} from '../../core/models/logistics';
 import {ArrivalWeighingComponent} from './arrival-weighing.component';
 import {ReceptionPageComponent} from './reception-page.component';
 import {ScanPageComponent, manifestCodeFrom} from './scan-page.component';
@@ -257,4 +258,30 @@ describe('ReceptionPageComponent (Sprint 3)', () => {
     expect(notice?.querySelector('a')?.getAttribute('href')).toBe('/discrepancies/x1');
     expect(element.querySelector('app-report-discrepancy')).not.toBeNull();
   });
+  it('vuelve a buscar las discrepancias mientras otro servicio las abre', fakeAsync(() => {
+    api.getComparison.and.returnValue(
+      of({
+        receptionId: 'r1', dispatchId: 'd1', orderId: 'o1', status: 'CONFIRMED', complete: true, withinTolerance: false,
+        lines: [{lineId: 'l1', materialId: 'm1', sku: 'CEM-001', materialName: 'Cemento', unit: 'BAG', requested: 100,
+          dispatched: 100, received: 90, difference: -10, shrinkagePercent: 10, tolerancePercent: 2.5, withinTolerance: false}],
+      } as Comparison),
+    );
+    api.openReception.and.returnValue(of(reception()));
+    api.confirmReception.and.returnValue(of(reception({status: 'CONFIRMED'})));
+    const opened = {id: 'x1', status: 'OPEN', type: 'SHORTAGE', sku: 'CEM-001', materialName: 'Cemento'} as Discrepancy;
+    let calls = 0;
+    api.listDiscrepancies.and.callFake(() => of(++calls < 3 ? [] : [opened]));
+    fixture.detectChanges();
+    (element.querySelector('button.confirm') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(element.querySelector('.discrepancy-notice')).toBeNull();
+
+    tick(2000);
+    fixture.detectChanges();
+
+    expect(api.listDiscrepancies).toHaveBeenCalledTimes(3);
+    expect(element.querySelector('.discrepancy-notice')?.textContent).toContain('1 discrepancia abierta');
+    tick(10000);
+    expect(api.listDiscrepancies).toHaveBeenCalledTimes(3);
+  }));
 });

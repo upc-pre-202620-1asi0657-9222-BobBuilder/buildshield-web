@@ -1,5 +1,6 @@
 import {DatePipe} from '@angular/common';
 import {Component, DestroyRef, LOCALE_ID, OnInit, computed, inject, input, signal} from '@angular/core';
+import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import {Router, RouterLink} from '@angular/router';
 import {Subscription, retry, throwError, timer} from 'rxjs';
 
@@ -32,11 +33,15 @@ interface LocalLine {
  * Sprint 3: pesaje de llegada (US29), «Guardar recepción parcial» (US38) y,
  * tras confirmar, aviso con las discrepancias abiertas (US36).
  */
+/** Reintentos al buscar las discrepancias que abre la conformidad (1 s entre cada uno). */
+const DISCREPANCY_RETRIES = 8;
+const DISCREPANCY_RETRY_MS = 1000;
+
 @Component({
   selector: 'app-reception-page',
   standalone: true,
   imports: [
-    RouterLink,
+    RouterLink,
     ReceptionComparisonComponent,
     ArrivalWeighingComponent,
     ReportDiscrepancyComponent,
@@ -216,9 +221,22 @@ export class ReceptionPageComponent implements OnInit {
     return `Recepción parcial guardada ${times}${last}. Las cantidades ya ingresadas no pueden bajar.`;
   }
 
-  private loadDiscrepancies(): void {
+  /**
+   * Las discrepancias las abre otro servicio al recibir el evento de la
+   * conformidad, así que pueden tardar un momento: mientras haya líneas fuera
+   * de tolerancia y la lista siga vacía, se vuelve a consultar.
+   */
+  private loadDiscrepancies(attempt = 0): void {
     this.logistics.listDiscrepancies({dispatchId: this.dispatchId()}).subscribe({
-      next: (list) => this.discrepancies.set(list),
+      next: (list) => {
+        this.discrepancies.set(list);
+        const outOfTolerance = this.comparison().some((row) => row.withinTolerance === false);
+        if (list.length === 0 && outOfTolerance && attempt < DISCREPANCY_RETRIES) {
+          timer(DISCREPANCY_RETRY_MS)
+            .pipe(takeUntilDestroyed(this.destroyRef))
+            .subscribe(() => this.loadDiscrepancies(attempt + 1));
+        }
+      },
       error: () => this.discrepancies.set([]),
     });
   }
