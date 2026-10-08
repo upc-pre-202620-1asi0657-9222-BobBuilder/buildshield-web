@@ -24,6 +24,7 @@ export function statusBadgeClass(status: string): string {
     case 'OPEN':
       return 'badge-warn';
     case 'IN_TRANSIT':
+    case 'APPROVAL_PENDING':
     case 'IN_REVIEW':
     case 'RESPONDED':
       return 'badge-info';

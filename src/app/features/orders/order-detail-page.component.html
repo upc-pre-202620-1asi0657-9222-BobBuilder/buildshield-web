@@ -22,7 +22,16 @@
     <p class="alert alert-error" role="alert">{{ error() }}</p>
   }
 
+  @if (approvalNotice()) {
+    <p class="alert alert-success" role="status">{{ approvalNotice() }}</p>
+  }
+
   @if (order(); as o) {
+    @if (approving()) {
+      <p class="alert alert-info" role="status">
+        Aprobando: reservando el stock en el almacén. Esto toma unos segundos.
+      </p>
+    }
     @if (canDecide()) {
       <div class="card step-go">
         <h2>Revisar pedido</h2>
@@ -97,7 +106,12 @@
         <p><span class="muted">Notas:</span> {{ o.notes }}</p>
       }
       @if (o.rejectionReason) {
-        <p class="alert alert-error"><span><strong>Motivo del rechazo:</strong> {{ o.rejectionReason }}</span></p>
+        <p class="alert alert-error">
+          <span>
+            <strong>{{ o.status === 'REGISTERED' ? 'No se pudo aprobar:' : 'Motivo del rechazo:' }}</strong>
+            {{ o.rejectionReason }}
+          </span>
+        </p>
       }
     </div>
 

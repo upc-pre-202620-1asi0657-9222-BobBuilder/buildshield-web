@@ -1,5 +1,6 @@
 export type OrderStatus =
   | 'REGISTERED'
+  | 'APPROVAL_PENDING'
   | 'IN_REVIEW'
   | 'PARTIALLY_FULFILLED'
   | 'FULFILLED'
@@ -8,6 +9,7 @@ export type OrderStatus =
 
 export const ORDER_STATUS_LABELS: Readonly<Record<OrderStatus, string>> = {
   REGISTERED: 'Registrado',
+  APPROVAL_PENDING: 'Aprobando',
   IN_REVIEW: 'Aprobado',
   PARTIALLY_FULFILLED: 'Parcialmente atendido',
   FULFILLED: 'Atendido',
@@ -20,6 +22,12 @@ export const DISPATCHABLE_ORDER_STATUSES: readonly OrderStatus[] = [
   'IN_REVIEW',
   'PARTIALLY_FULFILLED',
 ];
+
+/**
+ * Estado transitorio mientras la saga reserva el stock (microservicios): luego
+ * pasa a IN_REVIEW o vuelve a REGISTERED con `rejectionReason`.
+ */
+export const APPROVAL_PENDING: OrderStatus = 'APPROVAL_PENDING';
 
 export interface OrderLine {
   /** Id de la línea; el contrato del Sprint 2 lo usa para despachar. */
