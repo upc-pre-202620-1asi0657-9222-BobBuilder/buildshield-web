@@ -6,6 +6,7 @@ import {Role} from './core/models/role';
 const ADMIN: Role[] = ['ADMINISTRATOR'];
 const WAREHOUSE: Role[] = ['ADMINISTRATOR', 'WAREHOUSE_MANAGER'];
 const SITE: Role[] = ['SITE_MANAGER'];
+const ALL: Role[] = ['ADMINISTRATOR', 'WAREHOUSE_MANAGER', 'SITE_MANAGER'];
 
 export const routes: Routes = [
   {path: '', pathMatch: 'full', canActivate: [homeRedirectGuard], children: []},
@@ -122,6 +123,22 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'dispatches/:id/custody',
+        title: 'Historial de custodia | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: ALL},
+        loadComponent: () =>
+          import('./features/dispatches/custody-page.component').then((m) => m.CustodyPageComponent),
+      },
+      {
+        path: 'tracking',
+        title: 'En ruta | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: WAREHOUSE},
+        loadComponent: () =>
+          import('./features/tracking/tracking-page.component').then((m) => m.TrackingPageComponent),
+      },
+      {
         path: 'dispatches/:id',
         title: 'Despacho | BuildShield',
         canActivate: [roleGuard],
@@ -142,6 +159,14 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'reception/scan',
+        title: 'Abrir por código | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: SITE},
+        loadComponent: () =>
+          import('./features/reception/scan-page.component').then((m) => m.ScanPageComponent),
+      },
+      {
         path: 'reception/:dispatchId',
         title: 'Recibir despacho | BuildShield',
         canActivate: [roleGuard],
@@ -149,6 +174,30 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/reception/reception-page.component').then(
             (m) => m.ReceptionPageComponent,
+          ),
+      },
+      {
+        path: 'discrepancies',
+        title: 'Discrepancias | BuildShield',
+        loadComponent: () =>
+          import('./features/discrepancies/discrepancy-list-page.component').then(
+            (m) => m.DiscrepancyListPageComponent,
+          ),
+      },
+      {
+        path: 'discrepancies/:id',
+        title: 'Discrepancia | BuildShield',
+        loadComponent: () =>
+          import('./features/discrepancies/discrepancy-detail-page.component').then(
+            (m) => m.DiscrepancyDetailPageComponent,
+          ),
+      },
+      {
+        path: 'notifications',
+        title: 'Notificaciones | BuildShield',
+        loadComponent: () =>
+          import('./features/notifications/notifications-page.component').then(
+            (m) => m.NotificationsPageComponent,
           ),
       },
     ],
