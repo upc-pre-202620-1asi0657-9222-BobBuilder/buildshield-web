@@ -1,0 +1,187 @@
+<section class="page">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow muted">Discrepancia</p>
+      <h1>
+        @if (discrepancy(); as d) {
+          {{ typeLabel(d) }}: <span class="code">{{ d.sku }}</span>
+        } @else {
+          Discrepancia
+        }
+      </h1>
+    </div>
+    <div class="actions">
+      @if (discrepancy(); as d) {
+        <a class="btn btn-ghost" [routerLink]="['/dispatches', d.dispatchId, 'custody']">
+          <app-icon name="history" />
+          Historial de custodia
+        </a>
+      }
+      <a class="btn btn-ghost" routerLink="/discrepancies">
+        <app-icon name="back" />
+        Discrepancias
+      </a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+  @if (success()) {
+    <p class="alert alert-success" role="status">{{ success() }}</p>
+  }
+
+  @if (discrepancy(); as d) {
+    <div class="card">
+      <dl class="kv">
+        <div>
+          <dt>Estado</dt>
+          <dd><span [class]="'badge ' + badge(d.status)">{{ statusLabel(d) }}</span></dd>
+        </div>
+        <div>
+          <dt>Material</dt>
+          <dd>{{ d.materialName }}</dd>
+        </div>
+        <div>
+          <dt>Cantidad</dt>
+          <dd>{{ d.quantity | number: '1.0-3' }}</dd>
+        </div>
+        @if (d.shrinkagePercent !== null) {
+          <div>
+            <dt>Merma frente a tolerancia</dt>
+            <dd>{{ d.shrinkagePercent | number: '1.0-2' }} % de {{ d.tolerancePercent ?? 0 | number: '1.0-2' }} %</dd>
+          </div>
+        }
+        <div>
+          <dt>Manifiesto</dt>
+          <dd class="code">{{ d.manifestCode || '-' }}</dd>
+        </div>
+        <div>
+          <dt>Abierta</dt>
+          <dd>{{ d.openedAt | date: 'dd/MM/yyyy HH:mm' }} por {{ d.openedBy }}</dd>
+        </div>
+      </dl>
+      @if (d.observation) {
+        <p><span class="muted">Observación de la obra:</span> {{ d.observation }}</p>
+      }
+    </div>
+
+    @if (d.response || d.escalation || d.resolution) {
+      <div class="card">
+        <h2>Seguimiento</h2>
+        <ul class="list-plain notes">
+          @if (d.response; as n) {
+            <li class="note note-info">
+              <strong>Respuesta del almacén</strong>
+              <span>{{ n.text }}</span>
+              <span class="muted small">{{ n.by }}, {{ n.at | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </li>
+          }
+          @if (d.escalation; as n) {
+            <li class="note note-bad">
+              <strong>Escalada por la obra</strong>
+              <span>{{ n.reason }}</span>
+              <span class="muted small">{{ n.by }}, {{ n.at | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </li>
+          }
+          @if (d.resolution; as n) {
+            <li class="note note-ok">
+              <strong>Decisión final</strong>
+              <span>{{ n.decision }}</span>
+              <span class="muted small">{{ n.by }}, {{ n.at | date: 'dd/MM/yyyy HH:mm' }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    <div class="card">
+      <h2>Evidencias</h2>
+      @if (d.evidences.length) {
+        <ul class="list-plain photos">
+          @for (e of d.evidences; track e.id) {
+            <li>
+              <a [href]="e.url" target="_blank" rel="noopener">
+                <img [src]="e.url" [alt]="'Foto ' + e.fileName" loading="lazy" />
+              </a>
+              <span class="muted small">{{ e.uploadedAt | date: 'dd/MM HH:mm' }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="muted">Sin fotos todavía.</p>
+      }
+      @if (actions().upload) {
+        <label class="btn upload" [class.disabled]="uploading()">
+          <app-icon name="camera" />
+          {{ uploading() ? 'Subiendo…' : 'Subir foto' }}
+          <input
+            class="visually-hidden"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            capture="environment"
+            [disabled]="uploading()"
+            (change)="onFile($event)"
+          />
+        </label>
+        <p class="hint muted small">JPG, PNG o WEBP de hasta 5 MB. Desde el celular puedes tomarla con la cámara.</p>
+      }
+    </div>
+
+    <div class="card step-go">
+      <h2>Siguiente paso</h2>
+      @if (actions().respond) {
+        <div class="field">
+          <label for="responseText">Respuesta del almacén</label>
+          <textarea id="responseText" rows="3" maxlength="1000" [(ngModel)]="responseText"></textarea>
+          <span class="hint">Explica qué pasó y qué se hará, por ejemplo, «Se repone en el próximo despacho».</span>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary respond" type="button" (click)="respond()" [disabled]="busy()">
+            Enviar respuesta
+          </button>
+        </div>
+      }
+      @if (actions().accept) {
+        <p class="muted">Lee la respuesta del almacén. Si estás de acuerdo, acéptala; si no, escálala al administrador.</p>
+        <div class="form-actions">
+          <button class="btn btn-primary accept" type="button" (click)="accept()" [disabled]="busy()">
+            <app-icon name="check" />
+            Aceptar respuesta
+          </button>
+          <button class="btn btn-danger" type="button" (click)="escalating.set(!escalating())" [disabled]="busy()" [attr.aria-expanded]="escalating()">
+            Escalar
+          </button>
+        </div>
+        @if (escalating()) {
+          <div class="field escalate-panel">
+            <label for="escalateReason">Por qué no aceptas la respuesta</label>
+            <textarea id="escalateReason" rows="2" maxlength="1000" [(ngModel)]="escalateReason"></textarea>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-danger escalate" type="button" (click)="escalate()" [disabled]="busy()">
+              Confirmar escalamiento
+            </button>
+          </div>
+        }
+      }
+      @if (actions().resolve) {
+        <div class="field">
+          <label for="decision">Decisión final</label>
+          <textarea id="decision" rows="3" maxlength="1000" [(ngModel)]="decision"></textarea>
+          <span class="hint">Queda registrada en el historial de custodia y cierra la discrepancia.</span>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary resolve" type="button" (click)="resolve()" [disabled]="busy()">
+            Registrar decisión
+          </button>
+        </div>
+      }
+      @if (!hasAction()) {
+        <p class="muted next-hint">{{ hint() }}</p>
+      }
+    </div>
+  } @else if (!error()) {
+    <p class="loading">Cargando discrepancia…</p>
+  }
+</section>
