@@ -6,6 +6,10 @@
     </div>
     <div class="actions">
       @if (dispatch(); as d) {
+        <a class="btn btn-ghost" [routerLink]="['/dispatches', d.id, 'custody']">
+          <app-icon name="history" />
+          Ver historial de custodia
+        </a>
         <a class="btn" [routerLink]="['/dispatches', d.id, 'manifest']" target="_blank">
           <app-icon name="print" />
           Ver manifiesto
@@ -26,12 +30,24 @@
   }
 
   @if (dispatch(); as d) {
-    <app-dispatch-track
-      [status]="d.status"
-      [preparedAt]="d.preparedAt"
-      [departedAt]="d.departedAt"
-      [receivedAt]="d.receivedAt"
-    />
+    @if (d.status === 'CANCELLED') {
+      <p class="alert alert-error cancelled-note" role="status">
+        <span>
+          <strong>Despacho anulado</strong>
+          @if (d.cancelledAt) { el {{ d.cancelledAt | date: 'dd/MM/yyyy HH:mm' }} }
+          @if (d.cancellationReason) {
+            <br />Motivo: {{ d.cancellationReason }}
+          }
+        </span>
+      </p>
+    } @else {
+      <app-dispatch-track
+        [status]="d.status"
+        [preparedAt]="d.preparedAt"
+        [departedAt]="d.departedAt"
+        [receivedAt]="d.receivedAt"
+      />
+    }
 
     <div class="card">
       <dl class="kv">
@@ -184,6 +200,16 @@
         </div>
       }
     </div>
+
+    @if (preparing()) {
+      <app-dispatch-cancel [dispatchId]="d.id" (cancelled)="onCancelled($event)" />
+    } @else if (d.status !== 'CANCELLED') {
+      <app-dispatch-incidents
+        [dispatchId]="d.id"
+        [canReport]="d.status === 'IN_TRANSIT'"
+        (reported)="onIncidentReported()"
+      />
+    }
   } @else if (!error()) {
     <p class="loading">Cargando despacho…</p>
   }

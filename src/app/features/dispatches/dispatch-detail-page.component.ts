@@ -11,14 +11,29 @@ import {shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
 import {DISPATCH_TYPE_LABELS, Dispatch, dispatchStatusLabel} from '../../core/models/logistics';
 import {generateUuid} from '../../core/util/uuid';
 import {DispatchTrackComponent} from '../../shared/dispatch-track.component';
+import {DispatchCancelComponent} from './dispatch-cancel.component';
+import {DispatchIncidentsComponent} from './dispatch-incidents.component';
 import {IconComponent} from '../../shared/icon.component';
 import {statusBadgeClass} from '../../shared/status';
 
-/** Transportista, pesaje de salida y salida del despacho; enlace al manifiesto imprimible. */
+/**
+ * Transportista, pesaje de salida y salida del despacho; enlace al manifiesto
+ * imprimible. Sprint 3: anulación (US25), incidencias en ruta (US32) y enlace
+ * al historial de custodia (US39).
+ */
 @Component({
   selector: 'app-dispatch-detail-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, IconComponent, DispatchTrackComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    DatePipe,
+    DecimalPipe,
+    IconComponent,
+    DispatchTrackComponent,
+    DispatchCancelComponent,
+    DispatchIncidentsComponent,
+  ],
   templateUrl: './dispatch-detail-page.component.html',
 })
 export class DispatchDetailPageComponent implements OnInit {
@@ -102,6 +117,17 @@ export class DispatchDetailPageComponent implements OnInit {
       }),
       'Pesaje de salida registrado.',
     );
+  }
+
+  protected onCancelled(dispatch: Dispatch): void {
+    this.error.set(null);
+    this.success.set('Despacho anulado. Lo despachado volvió a quedar pendiente en el pedido.');
+    this.apply(dispatch);
+  }
+
+  protected onIncidentReported(): void {
+    this.success.set('Incidencia registrada.');
+    this.dispatch.update((d) => (d ? {...d, incidentCount: (d.incidentCount ?? 0) + 1} : d));
   }
 
   protected depart(): void {
