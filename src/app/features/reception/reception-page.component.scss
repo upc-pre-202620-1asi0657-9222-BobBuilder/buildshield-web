@@ -55,3 +55,17 @@
 .back-list {
   margin-top: 16px;
 }
+
+.discrepancy-notice {
+  flex-direction: column;
+  align-items: flex-start;
+
+  ul {
+    display: grid;
+    gap: 4px;
+  }
+}
+
+.partial {
+  min-height: 56px;
+}

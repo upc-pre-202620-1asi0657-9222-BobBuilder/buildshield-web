@@ -1,13 +1,17 @@
-import {Component, DestroyRef, OnInit, computed, inject, input, signal} from '@angular/core';
-import {RouterLink} from '@angular/router';
+import {DatePipe} from '@angular/common';
+import {Component, DestroyRef, LOCALE_ID, OnInit, computed, inject, input, signal} from '@angular/core';
+import {Router, RouterLink} from '@angular/router';
 import {Subscription, retry, throwError, timer} from 'rxjs';
 
 import {LogisticsApi, computeShrinkage} from '../../core/api/logistics-api';
 import {ApiError, shouldReuseIdempotencyKey, toApiError} from '../../core/http/api-error';
-import {ComparisonRow, Reception} from '../../core/models/logistics';
+import {CLOSED_DISCREPANCY_STATUSES, Discrepancy, discrepancyTypeLabel} from '../../core/models/discrepancy';
+import {ArrivalWeighing, ComparisonRow, Reception} from '../../core/models/logistics';
 import {generateUuid} from '../../core/util/uuid';
 import {IconComponent} from '../../shared/icon.component';
+import {ArrivalWeighingComponent} from './arrival-weighing.component';
 import {ReceptionComparisonComponent} from './reception-comparison.component';
+import {ReportDiscrepancyComponent, ReportableMaterial} from './report-discrepancy.component';
 import {LineSaveState, ReceivedChange, ReceptionLineView} from './reception-models';
 
 interface LocalLine {
@@ -24,11 +28,20 @@ interface LocalLine {
  * recepción». Si algo llegó distinto, se corrige la cantidad de esa línea y se
  * guarda al salir del campo. El botón de confirmar queda fijo abajo, al
  * alcance del pulgar (RNF21).
+ *
+ * Sprint 3: pesaje de llegada (US29), «Guardar recepción parcial» (US38) y,
+ * tras confirmar, aviso con las discrepancias abiertas (US36).
  */
 @Component({
   selector: 'app-reception-page',
   standalone: true,
-  imports: [RouterLink, ReceptionComparisonComponent, IconComponent],
+  imports: [
+    RouterLink,
+    ReceptionComparisonComponent,
+    ArrivalWeighingComponent,
+    ReportDiscrepancyComponent,
+    IconComponent,
+  ],
   templateUrl: './reception-page.component.html',
   styleUrl: './reception-page.component.scss',
 })
@@ -38,6 +51,8 @@ export class ReceptionPageComponent implements OnInit {
 
   private readonly logistics = inject(LogisticsApi);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
+  private readonly datePipe = new DatePipe(inject(LOCALE_ID));
 
   protected readonly reception = signal<Reception | null>(null);
   private readonly comparison = signal<ComparisonRow[]>([]);
@@ -48,10 +63,19 @@ export class ReceptionPageComponent implements OnInit {
 
   protected readonly error = signal<string | null>(null);
   protected readonly confirming = signal(false);
+  protected readonly savingPartial = signal(false);
+  protected readonly notice = signal<string | null>(null);
+  /** Discrepancias del despacho, cargadas al confirmar. */
+  protected readonly discrepancies = signal<Discrepancy[] | null>(null);
+  protected readonly openDiscrepancies = computed(() =>
+    (this.discrepancies() ?? []).filter((d) => !CLOSED_DISCREPANCY_STATUSES.includes(d.status)),
+  );
+  protected readonly discrepancyType = discrepancyTypeLabel;
   protected readonly confirmed = computed(() => this.reception()?.status === 'CONFIRMED');
 
   /** Se reusa si el usuario vuelve a confirmar tras un error de red. */
   private confirmKey = generateUuid();
+  private partialKey = generateUuid();
 
   protected readonly rows = computed<ReceptionLineView[]>(() => {
     const reception = this.reception();
@@ -99,6 +123,10 @@ export class ReceptionPageComponent implements OnInit {
   protected readonly allSaved = computed(
     () => this.rows().length > 0 && this.rows().every((r) => r.saveState === 'saved'),
   );
+  protected readonly reportableMaterials = computed<ReportableMaterial[]>(() =>
+    this.rows().map((r) => ({materialId: r.materialId, sku: r.sku, materialName: r.materialName})),
+  );
+
   protected readonly savingCount = computed(
     () => this.rows().filter((r) => r.saveState !== 'saved').length,
   );
@@ -130,6 +158,7 @@ export class ReceptionPageComponent implements OnInit {
         this.confirming.set(false);
         this.reception.set({...confirmed, status: 'CONFIRMED'});
         this.refreshComparison();
+        this.loadDiscrepancies();
       },
       error: (err: unknown) => {
         const apiError = toApiError(err);
@@ -139,6 +168,58 @@ export class ReceptionPageComponent implements OnInit {
           this.confirmKey = generateUuid();
         }
       },
+    });
+  }
+
+  /** US38: registra lo recibido hasta ahora; el despacho sigue abierto. */
+  protected savePartial(): void {
+    const reception = this.reception();
+    if (!reception || !this.allSaved()) {
+      return;
+    }
+    this.savingPartial.set(true);
+    this.error.set(null);
+    this.notice.set(null);
+    this.logistics.savePartialReception(reception.id, this.partialKey).subscribe({
+      next: (saved) => {
+        this.savingPartial.set(false);
+        this.partialKey = generateUuid();
+        this.reception.set({...reception, ...saved, lines: saved.lines?.length ? saved.lines : reception.lines});
+        this.notice.set(
+          'Recepción parcial guardada: lo recibido ya suma al stock de la obra. Vuelve cuando llegue el resto para confirmar.',
+        );
+      },
+      error: (err: unknown) => {
+        const apiError = toApiError(err);
+        this.savingPartial.set(false);
+        this.error.set(apiError.message);
+        if (!shouldReuseIdempotencyKey(apiError)) {
+          this.partialKey = generateUuid();
+        }
+      },
+    });
+  }
+
+  protected onArrivalWeighed(weighing: ArrivalWeighing): void {
+    this.reception.update((r) => (r ? {...r, arrivalWeighing: weighing} : r));
+  }
+
+  protected onDiscrepancyCreated(discrepancy: Discrepancy): void {
+    void this.router.navigate(['/discrepancies', discrepancy.id]);
+  }
+
+  /** Texto del aviso de recepción parcial. */
+  protected partialSummary(r: Reception): string {
+    const count = r.partialCount ?? 0;
+    const times = count === 1 ? '1 vez' : `${count} veces`;
+    const last = r.lastPartialAt ? `, la última el ${this.datePipe.transform(r.lastPartialAt, 'dd/MM HH:mm')}` : '';
+    return `Recepción parcial guardada ${times}${last}. Las cantidades ya ingresadas no pueden bajar.`;
+  }
+
+  private loadDiscrepancies(): void {
+    this.logistics.listDiscrepancies({dispatchId: this.dispatchId()}).subscribe({
+      next: (list) => this.discrepancies.set(list),
+      error: () => this.discrepancies.set([]),
     });
   }
 
@@ -155,6 +236,7 @@ export class ReceptionPageComponent implements OnInit {
     this.loadComparison(reception.id);
     if (reception.status === 'CONFIRMED') {
       this.refreshComparison();
+      this.loadDiscrepancies();
       return;
     }
     // Precarga: lo no registrado se guarda con lo despachado (caso estándar sin diferencias).

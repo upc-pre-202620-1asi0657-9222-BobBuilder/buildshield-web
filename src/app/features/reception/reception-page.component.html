@@ -2,6 +2,12 @@
   <div class="page-header">
     <h1>Recepción en obra</h1>
     <div class="actions">
+      @if (reception(); as r) {
+        <a class="btn btn-ghost" [routerLink]="['/dispatches', r.dispatchId, 'custody']">
+          <app-icon name="history" />
+          Historial de custodia
+        </a>
+      }
       <a class="btn btn-ghost" routerLink="/reception">
         <app-icon name="back" />
         Despachos en camino
@@ -12,13 +18,43 @@
   @if (error()) {
     <p class="alert alert-error" role="alert">{{ error() }}</p>
   }
+  @if (notice()) {
+    <p class="alert alert-success" role="status">{{ notice() }}</p>
+  }
 
   @if (reception(); as r) {
     @if (confirmed()) {
       <p class="alert alert-success" role="status">
         Recepción confirmada. Las diferencias fuera de tolerancia quedan registradas para su revisión.
       </p>
+      @if (discrepancies(); as list) {
+        @if (openDiscrepancies().length) {
+          <div class="alert alert-warning discrepancy-notice" role="status">
+            <span>
+              <strong>
+                {{ openDiscrepancies().length }}
+                {{ openDiscrepancies().length === 1 ? 'discrepancia abierta' : 'discrepancias abiertas' }}.
+              </strong>
+              El almacén las revisará. Sube fotos como evidencia desde cada una.
+            </span>
+            <ul class="list-plain">
+              @for (d of openDiscrepancies(); track d.id) {
+                <li>
+                  <a [routerLink]="['/discrepancies', d.id]">
+                    {{ discrepancyType(d) }}: {{ d.sku }} {{ d.materialName }}
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        } @else if (list.length === 0) {
+          <p class="muted">Sin discrepancias: todo llegó dentro de la tolerancia.</p>
+        }
+      }
     } @else {
+      @if (r.status === 'PARTIALLY_RECEIVED') {
+        <p class="alert alert-info partial-note" role="status">{{ partialSummary(r) }}</p>
+      }
       <p class="lead">
         Cada cantidad recibida empieza igual a lo despachado. Corrige solo lo que llegó distinto: el
         cambio se guarda al salir del campo.
@@ -31,6 +67,21 @@
       (receivedChange)="onReceivedChange($event)"
     />
 
+    <app-arrival-weighing
+      [receptionId]="r.id"
+      [weighing]="r.arrivalWeighing"
+      [locked]="confirmed()"
+      (recorded)="onArrivalWeighed($event)"
+    />
+
+    @if (confirmed()) {
+      <app-report-discrepancy
+        [receptionId]="r.id"
+        [materials]="reportableMaterials()"
+        (created)="onDiscrepancyCreated($event)"
+      />
+    }
+
     @if (!confirmed()) {
       <div class="confirm-bar">
         <div class="confirm-inner">
@@ -42,10 +93,18 @@
             }
           </p>
           <button
+            class="btn partial"
+            type="button"
+            (click)="savePartial()"
+            [disabled]="!allSaved() || confirming() || savingPartial()"
+          >
+            {{ savingPartial() ? 'Guardando parcial…' : 'Guardar recepción parcial' }}
+          </button>
+          <button
             class="btn btn-primary confirm"
             type="button"
             (click)="confirm()"
-            [disabled]="!allSaved() || confirming()"
+            [disabled]="!allSaved() || confirming() || savingPartial()"
           >
             <app-icon name="check" />
             @if (confirming()) {

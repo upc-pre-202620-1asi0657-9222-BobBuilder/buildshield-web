@@ -24,6 +24,10 @@ import {nameIndex} from '../../shared/status';
       <div class="page-header">
         <h1>Despachos en camino</h1>
         <div class="actions">
+          <a class="btn btn-ghost" routerLink="/reception/scan">
+            <app-icon name="scan" />
+            Abrir por código
+          </a>
           <button class="btn" type="button" (click)="load()" [disabled]="loading()">
             <app-icon name="refresh" />
             {{ loading() ? 'Actualizando…' : 'Actualizar' }}
@@ -52,6 +56,11 @@ import {nameIndex} from '../../shared/status';
                   }
                   @if (d.departedAt) {
                     <span>Salió {{ d.departedAt | date: 'dd/MM HH:mm' }}</span>
+                  }
+                  @if (d.incidentCount) {
+                    <span class="incidents">
+                      {{ d.incidentCount }} {{ d.incidentCount === 1 ? 'incidencia' : 'incidencias' }} en ruta
+                    </span>
                   }
                 </span>
                 <span class="cta">
@@ -138,6 +147,10 @@ import {nameIndex} from '../../shared/status';
     }
     .empty {
       grid-column: 1 / -1;
+    }
+    .incidents {
+      color: var(--bs-pendiente);
+      font-weight: 600;
     }
   `,
 })
