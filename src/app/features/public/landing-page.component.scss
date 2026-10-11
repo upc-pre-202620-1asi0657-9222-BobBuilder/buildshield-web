@@ -1,0 +1,503 @@
+// Página pública (US49): portada en asfalto, secciones sobre concreto y losa,
+// y el medidor de merma como único elemento con color de estado.
+
+:host {
+  display: block;
+}
+
+main:focus {
+  outline: none;
+}
+
+.wrap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px;
+
+  @media (min-width: 900px) {
+    padding: 0 40px;
+  }
+}
+
+.kicker,
+.kicker-dark {
+  margin: 0 0 12px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.kicker {
+  color: var(--bs-senal);
+}
+
+.kicker-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--bs-acero);
+
+  &::before {
+    content: '';
+    width: 24px;
+    height: 4px;
+    background: var(--bs-senal);
+  }
+}
+
+// Portada -------------------------------------------------------------------
+
+.hero {
+  background: var(--bs-asfalto);
+  color: var(--bs-concreto);
+  padding: 40px 0 48px;
+
+  @media (min-width: 900px) {
+    padding: 72px 0 80px;
+  }
+}
+
+.hero-grid {
+  display: grid;
+  gap: 40px;
+  align-items: center;
+
+  @media (min-width: 960px) {
+    grid-template-columns: 7fr 5fr;
+    gap: 56px;
+  }
+}
+
+.hero-copy h1 {
+  font-size: clamp(2.5rem, 7vw, 4.25rem);
+  line-height: 0.98;
+  max-width: 14ch;
+  margin: 0 0 20px;
+}
+
+.hero-lead {
+  max-width: 56ch;
+  font-size: 1.125rem;
+  color: var(--bs-niebla);
+  margin: 0 0 28px;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  .btn {
+    @media (max-width: 479px) {
+      width: 100%;
+    }
+  }
+}
+
+.hero-note {
+  margin: 16px 0 0;
+  font-size: 0.9375rem;
+  color: var(--bs-niebla);
+}
+
+// Ejemplo del medidor de merma ------------------------------------------------
+
+.sample {
+  margin: 0;
+  padding: 20px;
+  background: var(--bs-losa);
+  color: var(--bs-asfalto);
+  border-radius: var(--bs-radius);
+  border-top: 6px solid var(--bs-senal);
+
+  figcaption {
+    margin-top: 16px;
+    font-size: 0.8125rem;
+    color: var(--bs-acero);
+  }
+}
+
+.sample-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--bs-junta);
+}
+
+.sample-code {
+  font-family: var(--bs-font-display);
+  font-weight: 800;
+  font-size: 1.5rem;
+  letter-spacing: 0.04em;
+}
+
+.sample-line {
+  padding: 14px 0;
+
+  & + & {
+    border-top: 1px solid var(--bs-junta-suave);
+  }
+}
+
+.sample-material {
+  display: flex;
+  flex-direction: column;
+
+  span {
+    font-size: 0.875rem;
+    color: var(--bs-acero);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.sample-readout {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 8px 0;
+
+  .pct {
+    font-family: var(--bs-font-display);
+    font-weight: 800;
+    font-size: 2.25rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .pct-label {
+    font-size: 0.875rem;
+    color: var(--bs-acero);
+  }
+}
+
+.is-out .pct {
+  color: var(--bs-merma);
+}
+
+.is-ok .pct {
+  color: var(--bs-conforme);
+}
+
+// Pista = despachado. Relleno = recibido. Franja final = tolerancia.
+.track {
+  position: relative;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--bs-junta-suave);
+  overflow: hidden;
+
+  .fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+  }
+
+  .allowed {
+    position: absolute;
+    inset: 0 0 0 auto;
+    background: var(--bs-pendiente-bg);
+  }
+
+  .tol {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    z-index: 2;
+    width: 2px;
+    margin-left: -1px;
+    background: var(--bs-asfalto);
+  }
+}
+
+.is-out .fill {
+  background: var(--bs-merma);
+}
+
+.is-ok .fill {
+  background: var(--bs-conforme);
+}
+
+// Secciones -----------------------------------------------------------------
+
+.band {
+  padding: 56px 0;
+  scroll-margin-top: 64px;
+
+  @media (min-width: 900px) {
+    padding: 88px 0;
+  }
+
+  h2 {
+    font-size: clamp(2rem, 4.5vw, 2.75rem);
+    font-weight: 800;
+    max-width: 22ch;
+    margin: 0 0 16px;
+  }
+}
+
+.band-surface {
+  background: var(--bs-losa);
+  border-top: 1px solid var(--bs-junta);
+  border-bottom: 1px solid var(--bs-junta);
+}
+
+.section-lead {
+  max-width: 64ch;
+  font-size: 1.0625rem;
+  color: var(--bs-acero);
+  margin: 0 0 32px;
+}
+
+.cards-3 {
+  display: grid;
+  gap: var(--bs-gap);
+
+  @media (min-width: 760px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .card {
+    margin: 0;
+    border-top: 4px solid var(--bs-asfalto);
+
+    p {
+      margin: 0;
+      color: var(--bs-acero);
+    }
+  }
+}
+
+// Recorrido del despacho: la única lista numerada, porque es una secuencia real.
+.journey {
+  display: grid;
+  gap: var(--bs-gap);
+  margin-bottom: 40px;
+
+  @media (min-width: 760px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.journey-step {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--bs-junta);
+  border-radius: var(--bs-radius);
+  background: var(--bs-concreto);
+
+  .step-num {
+    flex: none;
+    background: var(--bs-asfalto);
+    color: var(--bs-senal);
+  }
+
+  p {
+    margin: 0;
+    color: var(--bs-acero);
+  }
+}
+
+.features {
+  display: grid;
+  gap: 24px 32px;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 960px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  li {
+    padding-left: 16px;
+    border-left: 3px solid var(--bs-junta);
+  }
+
+  p {
+    margin: 0;
+    color: var(--bs-acero);
+  }
+}
+
+// Planes --------------------------------------------------------------------
+
+.plans {
+  display: grid;
+  gap: var(--bs-gap);
+
+  @media (min-width: 860px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: stretch;
+  }
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  background: var(--bs-losa);
+  border: 1px solid var(--bs-junta);
+  border-radius: var(--bs-radius);
+
+  .btn {
+    margin-top: auto;
+  }
+}
+
+.plan-featured {
+  border: 2px solid var(--bs-asfalto);
+  box-shadow: inset 0 6px 0 var(--bs-senal);
+}
+
+.plan-name {
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0 0 4px;
+}
+
+.plan-worksites {
+  margin: 0 0 16px;
+  font-weight: 600;
+}
+
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 4px;
+
+  .amount {
+    font-family: var(--bs-font-display);
+    font-weight: 800;
+    font-size: 2.75rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .per {
+    color: var(--bs-acero);
+  }
+}
+
+.plan-annual {
+  margin: 0 0 12px;
+  color: var(--bs-acero);
+  font-variant-numeric: tabular-nums;
+}
+
+.plan-savings {
+  margin: 0 0 20px;
+
+  .badge {
+    white-space: normal;
+    line-height: 1.35;
+  }
+}
+
+.plans-ref {
+  margin: 16px 0 0;
+  font-size: 0.875rem;
+}
+
+.plan-notes {
+  display: grid;
+  gap: 8px;
+  margin-top: 24px;
+  max-width: 72ch;
+
+  li {
+    position: relative;
+    padding-left: 20px;
+    color: var(--bs-acero);
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: 0.6em;
+      width: 8px;
+      height: 8px;
+      background: var(--bs-asfalto);
+    }
+  }
+}
+
+// Equipo --------------------------------------------------------------------
+
+.team {
+  display: grid;
+  gap: 12px;
+
+  @media (min-width: 600px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 960px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--bs-junta);
+  border-radius: var(--bs-radius);
+  background: var(--bs-concreto);
+}
+
+.avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--bs-asfalto);
+  color: var(--bs-senal);
+  font-family: var(--bs-font-display);
+  font-weight: 800;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+}
+
+.member-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.member-name {
+  font-weight: 600;
+}
+
+.member-career {
+  font-size: 0.875rem;
+  color: var(--bs-acero);
+}
+
+// Cierre --------------------------------------------------------------------
+
+.closing {
+  background: var(--bs-asfalto);
+  color: var(--bs-concreto);
+  border-top: 6px solid var(--bs-senal);
+  padding: 56px 0;
+
+  h2 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    margin: 0 0 12px;
+  }
+
+  p {
+    color: var(--bs-niebla);
+    margin: 0 0 24px;
+  }
+}
