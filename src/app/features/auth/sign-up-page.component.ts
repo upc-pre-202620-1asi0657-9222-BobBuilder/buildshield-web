@@ -20,7 +20,9 @@ import {PASSWORD_HINT, passwordRule, rucRule} from '../../shared/validators';
       <p class="side-note">Despachos, recepción y merma por material, en una sola cuenta para toda la empresa.</p>
     </aside>
     <section class="auth-card">
-      <img class="auth-logo" src="brand/mark.svg" alt="BuildShield" width="44" height="44" />
+      <a class="auth-logo" routerLink="/" aria-label="BuildShield, página de inicio">
+        <img src="brand/mark.svg" alt="" width="44" height="44" />
+      </a>
       <h1>Registra tu organización</h1>
       <p class="muted">Tú serás su administrador. La prueba gratuita incluye todas las funciones.</p>
 
@@ -75,6 +77,11 @@ import {PASSWORD_HINT, passwordRule, rucRule} from '../../shared/validators';
             <span class="error">La contraseña no cumple la regla.</span>
           }
         </div>
+        <p class="consent">
+          Al registrar tu organización aceptas los
+          <a routerLink="/terminos">Términos del servicio</a> y la
+          <a routerLink="/privacidad">Política de privacidad</a>.
+        </p>
         <button class="btn btn-primary btn-block" type="submit" [disabled]="loading()">
           {{ loading() ? 'Registrando…' : 'Registrar organización' }}
         </button>

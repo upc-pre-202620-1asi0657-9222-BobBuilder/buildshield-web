@@ -2,7 +2,7 @@ import {provideHttpClient, withInterceptors} from '@angular/common/http';
 import {ApplicationConfig, LOCALE_ID, provideZoneChangeDetection} from '@angular/core';
 import {registerLocaleData} from '@angular/common';
 import localeEsPe from '@angular/common/locales/es-PE';
-import {provideRouter, withComponentInputBinding} from '@angular/router';
+import {provideRouter, withComponentInputBinding, withInMemoryScrolling} from '@angular/router';
 
 import {routes} from './app.routes';
 import {provideLogisticsApi} from './core/api/logistics-api.provider';
@@ -30,7 +30,12 @@ export const HTTP_INTERCEPTORS_IN_ORDER = [
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({eventCoalescing: true}),
-    provideRouter(routes, withComponentInputBinding()),
+    provideRouter(
+      routes,
+      withComponentInputBinding(),
+      // Los enlaces con fragmento de las páginas públicas (#planes, #nosotros) desplazan.
+      withInMemoryScrolling({anchorScrolling: 'enabled', scrollPositionRestoration: 'enabled'}),
+    ),
     provideHttpClient(withInterceptors(HTTP_INTERCEPTORS_IN_ORDER)),
     provideLogisticsApi(),
     {provide: LOCALE_ID, useValue: 'es-PE'},

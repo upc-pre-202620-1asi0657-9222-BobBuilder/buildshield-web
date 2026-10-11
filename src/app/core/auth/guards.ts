@@ -34,9 +34,3 @@ export const guestGuard: CanActivateFn = () => {
   }
   return inject(Router).parseUrl(homeRouteFor(auth.role()));
 };
-
-/** Redirige la raíz a la pantalla de inicio del rol. */
-export const homeRedirectGuard: CanActivateFn = () => {
-  const auth = inject(AuthService);
-  return inject(Router).parseUrl(auth.isAuthenticated() ? homeRouteFor(auth.role()) : '/sign-in');
-};

@@ -1,6 +1,6 @@
 import {Routes} from '@angular/router';
 
-import {authGuard, guestGuard, homeRedirectGuard, roleGuard} from './core/auth/guards';
+import {authGuard, guestGuard, roleGuard} from './core/auth/guards';
 import {Role} from './core/models/role';
 
 const ADMIN: Role[] = ['ADMINISTRATOR'];
@@ -9,7 +9,27 @@ const SITE: Role[] = ['SITE_MANAGER'];
 const ALL: Role[] = ['ADMINISTRATOR', 'WAREHOUSE_MANAGER', 'SITE_MANAGER'];
 
 export const routes: Routes = [
-  {path: '', pathMatch: 'full', canActivate: [homeRedirectGuard], children: []},
+  // Visitantes ven la página pública; con sesión, guestGuard lleva al panel del rol.
+  {
+    path: '',
+    pathMatch: 'full',
+    title: 'BuildShield | Trazabilidad de materiales entre almacén y obra',
+    canActivate: [guestGuard],
+    loadComponent: () =>
+      import('./features/public/landing-page.component').then((m) => m.LandingPageComponent),
+  },
+  {
+    path: 'terminos',
+    title: 'Términos del servicio | BuildShield',
+    loadComponent: () =>
+      import('./features/public/terms-page.component').then((m) => m.TermsPageComponent),
+  },
+  {
+    path: 'privacidad',
+    title: 'Política de privacidad | BuildShield',
+    loadComponent: () =>
+      import('./features/public/privacy-page.component').then((m) => m.PrivacyPageComponent),
+  },
   {
     path: 'sign-in',
     title: 'Iniciar sesión | BuildShield',
