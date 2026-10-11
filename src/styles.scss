@@ -8,7 +8,9 @@
   --bs-concreto: #eceeea;
   --bs-losa: #ffffff;
   --bs-senal: #f5b800;
+  --bs-senal-claro: #ffc933;
   --bs-acero: #52606a;
+  --bs-niebla: #b9c0bc;
   --bs-junta: #cdd2cc;
   --bs-junta-suave: #e1e4df;
   --bs-conforme: #1e6b45;
@@ -355,6 +357,42 @@ a {
       border-color: var(--bs-junta);
       color: var(--bs-acero);
     }
+  }
+
+  // Solo sobre asfalto (páginas públicas): amarillo señal con texto asfalto.
+  &.btn-signal {
+    background: var(--bs-senal);
+    border-color: var(--bs-senal);
+    color: var(--bs-asfalto);
+
+    &:hover:not(:disabled) {
+      background: var(--bs-senal-claro);
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px var(--bs-asfalto), 0 0 0 4px var(--bs-senal);
+    }
+  }
+
+  // Secundario sobre asfalto (páginas públicas): borde y texto claros.
+  &.btn-outline-light {
+    background: transparent;
+    border-color: var(--bs-niebla);
+    color: var(--bs-concreto);
+
+    &:hover:not(:disabled) {
+      background: var(--bs-asfalto-2);
+    }
+
+    &:focus-visible {
+      box-shadow: 0 0 0 2px var(--bs-senal);
+    }
+  }
+
+  &.btn-lg {
+    min-height: 52px;
+    padding: 0 24px;
+    font-size: 1.0625rem;
   }
 
   &.btn-ghost {

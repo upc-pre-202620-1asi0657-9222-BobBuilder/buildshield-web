@@ -78,6 +78,9 @@ Reglas:
 - **Botón primario**: asfalto con texto blanco, alto mínimo 48 px (RNF21). Uno
   por pantalla.
 - **Botón secundario**: losa con borde asfalto. **Destructivo**: texto merma.
+- **Páginas públicas** (inicio, términos, privacidad): sobre asfalto, el botón
+  principal es `btn-signal` (amarillo señal con texto asfalto) y el secundario
+  `btn-outline-light`. Texto secundario sobre asfalto: `--bs-niebla`.
 - **Campos**: etiqueta visible siempre arriba, ayuda debajo, error junto al campo
   con `aria-describedby`. Nunca solo placeholder.
 - **Insignias de estado**: punto más texto, colores de la tabla de estados.
