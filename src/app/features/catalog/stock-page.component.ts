@@ -7,16 +7,26 @@ import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {toApiError} from '../../core/http/api-error';
 import {Material, StockLevel, Warehouse} from '../../core/models/organization';
 import {IconComponent} from '../../shared/icon.component';
+import {InventoryTabsComponent} from '../inventory/inventory-tabs.component';
 
-/** Stock por almacén y registro de entradas (POST con Idempotency-Key automático). */
+const ENTRY_SAVED: Readonly<Record<'' | 'INITIAL' | 'REPLENISHMENT', string>> = {
+  '': 'Entrada registrada.',
+  INITIAL: 'Inventario inicial registrado.',
+  REPLENISHMENT: 'Reposición registrada.',
+};
+
+/**
+ * T90 (US40): existencias por almacén y registro de entradas, como inventario
+ * inicial o como reposición. El historial y los conteos están en sus pestañas.
+ */
 @Component({
   selector: 'app-stock-page',
   standalone: true,
-  imports: [ReactiveFormsModule, DecimalPipe, IconComponent],
+  imports: [ReactiveFormsModule, DecimalPipe, IconComponent, InventoryTabsComponent],
   template: `
     <section class="page">
       <div class="page-header">
-        <h1>Stock</h1>
+        <h1>Inventario</h1>
         <div class="actions">
           <button class="btn" type="button" (click)="focusField('warehouse')">
             <app-icon name="plus" />
@@ -24,9 +34,13 @@ import {IconComponent} from '../../shared/icon.component';
           </button>
         </div>
       </div>
+      <app-inventory-tabs />
       <p class="lead">
         Lo que hay en cada almacén. Lo reservado ya está comprometido con un despacho y no se puede volver a usar.
       </p>
+      @if (saved()) {
+        <p class="alert alert-success" role="status">{{ saved() }}</p>
+      }
       @if (error()) {
         <p class="alert alert-error" role="alert">{{ error() }}</p>
       }
@@ -75,7 +89,9 @@ import {IconComponent} from '../../shared/icon.component';
 
       <div class="card">
         <h2>Nueva entrada</h2>
-        <p class="muted">Suma material al stock del almacén, por ejemplo cuando llega una compra del proveedor.</p>
+        <p class="muted">
+          Registra el inventario inicial de cada material una sola vez; después, cada compra que llega es una reposición.
+        </p>
         <form [formGroup]="form" (ngSubmit)="register()" novalidate>
           <div class="form-grid">
             <div class="field">
@@ -123,6 +139,17 @@ import {IconComponent} from '../../shared/icon.component';
               }
             </div>
             <div class="field">
+              <label for="entryType">Tipo de entrada</label>
+              <select id="entryType" formControlName="entryType" aria-describedby="entryTypeHint">
+                <option value="">Automático</option>
+                <option value="INITIAL">Inventario inicial</option>
+                <option value="REPLENISHMENT">Reposición</option>
+              </select>
+              <span class="hint" id="entryTypeHint">
+                Automático: inicial si el material aún no tiene stock en el almacén, reposición en los demás casos.
+              </span>
+            </div>
+            <div class="field">
               <label for="note">Guía u observación (opcional)</label>
               <input id="note" formControlName="note" maxlength="200" autocomplete="off" aria-describedby="noteHint" />
               <span class="hint" id="noteHint">Por ejemplo, el número de guía de remisión del proveedor.</span>
@@ -154,7 +181,9 @@ export class StockPageComponent implements OnInit {
     materialId: ['', Validators.required],
     quantity: [0, [Validators.required, Validators.min(0.001)]],
     note: [''],
+    entryType: ['' as '' | 'INITIAL' | 'REPLENISHMENT'],
   });
+  protected readonly saved = signal<string | null>(null);
 
   ngOnInit(): void {
     forkJoin({warehouses: this.api.listWarehouses(), materials: this.api.listMaterials()}).subscribe({
@@ -184,10 +213,14 @@ export class StockPageComponent implements OnInit {
     const value = this.form.getRawValue();
     this.saving.set(true);
     this.error.set(null);
-    this.api.registerStockEntry({...value, note: value.note || undefined}).subscribe({
+    this.saved.set(null);
+    const {entryType, ...entry} = value;
+    const request = {...entry, note: entry.note || undefined, entryType: entryType || undefined};
+    this.api.registerStockEntry(request).subscribe({
       next: () => {
         this.saving.set(false);
-        this.form.patchValue({quantity: 0, note: ''});
+        this.saved.set(ENTRY_SAVED[entryType]);
+        this.form.patchValue({quantity: 0, note: '', entryType: ''});
         this.load();
       },
       error: (err: unknown) => {

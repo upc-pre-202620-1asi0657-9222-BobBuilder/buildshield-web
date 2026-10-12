@@ -129,4 +129,6 @@ export interface StockEntryRequest {
   materialId: string;
   quantity: number;
   note?: string;
+  /** US40: INITIAL o REPLENISHMENT; si falta, el backend decide por el stock existente. */
+  entryType?: 'INITIAL' | 'REPLENISHMENT';
 }
