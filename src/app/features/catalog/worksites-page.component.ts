@@ -1,6 +1,7 @@
 import {DatePipe} from '@angular/common';
 import {Component, OnInit, computed, inject, signal} from '@angular/core';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
+import {RouterLink} from '@angular/router';
 
 import {OrganizationApiService} from '../../core/api/organization-api.service';
 import {AuthService} from '../../core/auth/auth.service';
@@ -13,7 +14,12 @@ import {todayIso} from '../../shared/validators';
 @Component({
   selector: 'app-worksites-page',
   standalone: true,
-  imports: [ReactiveFormsModule, DatePipe, IconComponent],
+  imports: [ReactiveFormsModule, DatePipe, RouterLink, IconComponent],
+  styles: `
+    .limit-actions {
+      margin: 12px 0 0;
+    }
+  `,
   template: `
     <section class="page">
       <div class="page-header">
@@ -28,7 +34,17 @@ import {todayIso} from '../../shared/validators';
         }
       </div>
       <p class="lead">Obras que reciben materiales. Cada encargado de obra ve solo las suyas.</p>
-      @if (error()) {
+      @if (limitReached()) {
+        <div class="alert alert-warning" role="alert" data-testid="worksite-limit">
+          <app-icon name="alert" />
+          <div>
+            <strong>Llegaste al límite de tu plan.</strong>
+            El plan Plus permite hasta 5 obras activas a la vez. Para registrar o reactivar otra obra, pasa al plan Pro
+            (obras ilimitadas) o registra una fecha de fin a una obra que ya terminó.
+            <p class="limit-actions"><a class="btn" routerLink="/suscripcion/planes">Ver el plan Pro</a></p>
+          </div>
+        </div>
+      } @else if (error()) {
         <p class="alert alert-error" role="alert">{{ error() }}</p>
       }
 
@@ -161,6 +177,8 @@ export class WorksitesPageComponent implements OnInit {
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
+  /** T71: 409 WORKSITE_LIMIT_REACHED del plan Plus (sexta obra activa). */
+  protected readonly limitReached = signal(false);
   protected readonly canCreate = computed(() => this.auth.role() === 'ADMINISTRATOR');
 
   protected readonly form = inject(FormBuilder).nonNullable.group({
@@ -189,6 +207,7 @@ export class WorksitesPageComponent implements OnInit {
     const value = this.form.getRawValue();
     this.saving.set(true);
     this.error.set(null);
+    this.limitReached.set(false);
     this.api.createWorksite({...value, endDate: value.endDate || null}).subscribe({
       next: () => {
         this.saving.set(false);
@@ -197,7 +216,9 @@ export class WorksitesPageComponent implements OnInit {
       },
       error: (err: unknown) => {
         this.saving.set(false);
-        this.error.set(toApiError(err).message);
+        const apiError = toApiError(err);
+        this.limitReached.set(apiError.code === 'WORKSITE_LIMIT_REACHED');
+        this.error.set(apiError.message);
       },
     });
   }
