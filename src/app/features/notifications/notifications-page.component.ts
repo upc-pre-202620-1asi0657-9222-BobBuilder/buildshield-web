@@ -1,8 +1,9 @@
 import {DatePipe} from '@angular/common';
-import {Component, OnInit, inject, signal} from '@angular/core';
-import {Router} from '@angular/router';
+import {Component, OnInit, computed, inject, signal} from '@angular/core';
+import {Router, RouterLink} from '@angular/router';
 
 import {NotificationsApi} from '../../core/api/notifications-api';
+import {AuthService} from '../../core/auth/auth.service';
 import {toApiError} from '../../core/http/api-error';
 import {AppNotification} from '../../core/models/notification';
 import {IconComponent} from '../../shared/icon.component';
@@ -15,7 +16,7 @@ export const NOTIFICATIONS_PAGE_SIZE = 20;
 @Component({
   selector: 'app-notifications-page',
   standalone: true,
-  imports: [DatePipe, IconComponent],
+  imports: [DatePipe, RouterLink, IconComponent],
   template: `
     <section class="page">
       <div class="page-header">
@@ -25,6 +26,12 @@ export const NOTIFICATIONS_PAGE_SIZE = 20;
             <app-icon name="check-all" />
             Marcar todas como leídas
           </button>
+          @if (isAdmin()) {
+            <a class="btn" routerLink="/notifications/recipients" data-testid="recipient-settings-link">
+              <app-icon name="sliders" />
+              Destinatarios
+            </a>
+          }
         </div>
       </div>
       <p class="lead">Avisos de los despachos, incidencias y discrepancias que te tocan.</p>
@@ -156,6 +163,9 @@ export const NOTIFICATIONS_PAGE_SIZE = 20;
 export class NotificationsPageComponent implements OnInit {
   private readonly api = inject(NotificationsApi);
   private readonly router = inject(Router);
+  /** T81 (US45): el administrador configura quién recibe cada aviso. */
+  private readonly auth = inject(AuthService);
+  protected readonly isAdmin = computed(() => this.auth.role() === 'ADMINISTRATOR');
   protected readonly unread = inject(UnreadNotificationsService);
 
   protected readonly items = signal<AppNotification[]>([]);

@@ -3,6 +3,8 @@ import {Router, provideRouter} from '@angular/router';
 import {Subject, of, throwError} from 'rxjs';
 
 import {NotificationsApi} from '../../core/api/notifications-api';
+import {AuthService} from '../../core/auth/auth.service';
+import {Role} from '../../core/models/role';
 import {AppNotification} from '../../core/models/notification';
 import {NotificationsPageComponent} from './notifications-page.component';
 import {UnreadNotificationsService} from './unread-notifications.service';
@@ -36,12 +38,17 @@ describe('UnreadNotificationsService', () => {
 
 describe('NotificationsPageComponent (US43)', () => {
   let api: jasmine.SpyObj<NotificationsApi>;
+  let role: Role = 'SITE_MANAGER';
   let router: Router;
 
   function create() {
     TestBed.configureTestingModule({
       imports: [NotificationsPageComponent],
-      providers: [provideRouter([]), {provide: NotificationsApi, useValue: api}],
+      providers: [
+        provideRouter([]),
+        {provide: NotificationsApi, useValue: api},
+        {provide: AuthService, useValue: {role: () => role}},
+      ],
     });
     router = TestBed.inject(Router);
     spyOn(router, 'navigateByUrl').and.resolveTo(true);
@@ -88,5 +95,15 @@ describe('NotificationsPageComponent (US43)', () => {
     const {element} = create();
     (Array.from(element.querySelectorAll('button.chip')) as HTMLButtonElement[])[1].click();
     expect(api.list).toHaveBeenCalledWith({unreadOnly: true, page: 0, size: 20});
+  });
+
+  it('muestra el acceso a destinatarios solo al administrador (US45)', () => {
+    role = 'SITE_MANAGER';
+    expect(create().element.querySelector('[data-testid="recipient-settings-link"]')).toBeNull();
+    TestBed.resetTestingModule();
+    role = 'ADMINISTRATOR';
+    const link = create().element.querySelector('[data-testid="recipient-settings-link"]');
+    expect(link?.getAttribute('href')).toBe('/notifications/recipients');
+    role = 'SITE_MANAGER';
   });
 });
