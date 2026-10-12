@@ -127,7 +127,11 @@ export class SignUpPageComponent {
       .signUp(request)
       .pipe(switchMap(() => this.auth.signIn({email: request.adminEmail, password: request.password})))
       .subscribe({
-        next: (session) => void this.router.navigateByUrl(homeRouteFor(session.role)),
+        // T69 (US05): el administrador ve el inicio de la prueba gratuita y los días que quedan.
+        next: (session) =>
+          void this.router.navigateByUrl(
+            session.role === 'ADMINISTRATOR' ? '/suscripcion?bienvenida=1' : homeRouteFor(session.role),
+          ),
         error: (err: unknown) => {
           const apiError = toApiError(err);
           this.loading.set(false);
