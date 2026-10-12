@@ -6,6 +6,7 @@ import {filter, interval, merge, startWith} from 'rxjs';
 import {LogisticsApi} from '../core/api/logistics-api';
 import {AuthService} from '../core/auth/auth.service';
 import {ROLE_LABELS, Role} from '../core/models/role';
+import {SubscriptionStateService, daysLeftLabel} from '../core/subscription/subscription-state.service';
 import {UNREAD_POLL_MS, UnreadNotificationsService} from '../features/notifications/unread-notifications.service';
 import {IconComponent} from '../shared/icon.component';
 
@@ -25,12 +26,18 @@ export const NAV_ITEMS: readonly NavItem[] = [
   {path: '/dispatches', label: 'Despachos', icon: 'truck', roles: ['ADMINISTRATOR', 'WAREHOUSE_MANAGER']},
   {path: '/tracking', label: 'En ruta', icon: 'route', roles: ['ADMINISTRATOR', 'WAREHOUSE_MANAGER']},
   {path: '/discrepancies', label: 'Discrepancias', icon: 'alert', roles: ALL},
-  {path: '/stock', label: 'Stock', icon: 'stock', roles: ['ADMINISTRATOR', 'WAREHOUSE_MANAGER']},
+  {path: '/returns', label: 'Devoluciones', icon: 'return', roles: ALL},
+  {path: '/stock', label: 'Inventario', icon: 'stock', roles: ['ADMINISTRATOR', 'WAREHOUSE_MANAGER']},
+  {path: '/reports', label: 'Reportes', icon: 'report', roles: ALL},
   {path: '/users', label: 'Usuarios', icon: 'users', roles: ['ADMINISTRATOR']},
   {path: '/worksites', label: 'Obras', icon: 'worksites', roles: ALL},
   {path: '/warehouses', label: 'Almacenes', icon: 'warehouses', roles: ALL},
   {path: '/materials', label: 'Materiales', icon: 'materials', roles: ALL},
+  {path: '/suscripcion', label: 'Suscripción', icon: 'card', roles: ['ADMINISTRATOR']},
 ];
+
+/** Cada cuánto se vuelve a consultar la suscripción (días de prueba, solo lectura). */
+export const SUBSCRIPTION_POLL_MS = 5 * 60_000;
 
 @Component({
   selector: 'app-shell',
@@ -44,6 +51,13 @@ export class ShellComponent {
   private readonly router = inject(Router);
   protected readonly simulated = inject(LogisticsApi).simulated;
   private readonly unread = inject(UnreadNotificationsService);
+  private readonly subscriptionState = inject(SubscriptionStateService);
+  protected readonly subscription = this.subscriptionState.subscription;
+  protected readonly readOnly = this.subscriptionState.readOnly;
+  protected readonly inTrial = this.subscriptionState.inTrial;
+  protected readonly trialEndingSoon = this.subscriptionState.trialEndingSoon;
+  protected readonly isAdmin = computed(() => this.auth.role() === 'ADMINISTRATOR');
+  protected readonly daysLeft = computed(() => daysLeftLabel(this.subscription()?.daysRemaining ?? 0));
   protected readonly unreadCount = this.unread.count;
   protected readonly bellLabel = computed(() => {
     const count = this.unreadCount();
@@ -70,6 +84,11 @@ export class ShellComponent {
     )
       .pipe(takeUntilDestroyed())
       .subscribe(() => this.unread.refresh());
+
+    // Suscripción: al entrar y cada 5 min (US06 y US10). Un 402 la marca al instante.
+    interval(SUBSCRIPTION_POLL_MS)
+      .pipe(startWith(0), takeUntilDestroyed())
+      .subscribe(() => this.subscriptionState.refresh());
   }
 
   @HostListener('document:keydown.escape')
@@ -82,6 +101,7 @@ export class ShellComponent {
   }
 
   protected signOut(): void {
+    this.subscriptionState.clear();
     this.auth.signOut().subscribe(() => void this.router.navigate(['/sign-in']));
   }
 }

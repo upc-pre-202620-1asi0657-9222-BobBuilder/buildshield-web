@@ -6,6 +6,7 @@ import {Role} from './core/models/role';
 const ADMIN: Role[] = ['ADMINISTRATOR'];
 const WAREHOUSE: Role[] = ['ADMINISTRATOR', 'WAREHOUSE_MANAGER'];
 const SITE: Role[] = ['SITE_MANAGER'];
+const SITE_OR_ADMIN: Role[] = ['ADMINISTRATOR', 'SITE_MANAGER'];
 const ALL: Role[] = ['ADMINISTRATOR', 'WAREHOUSE_MANAGER', 'SITE_MANAGER'];
 
 export const routes: Routes = [
@@ -90,11 +91,92 @@ export const routes: Routes = [
       },
       {
         path: 'stock',
-        title: 'Stock | BuildShield',
+        title: 'Inventario | BuildShield',
         canActivate: [roleGuard],
         data: {roles: WAREHOUSE},
         loadComponent: () =>
           import('./features/catalog/stock-page.component').then((m) => m.StockPageComponent),
+      },
+      {
+        path: 'stock/movements',
+        title: 'Movimientos de inventario | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: WAREHOUSE},
+        loadComponent: () =>
+          import('./features/inventory/movements-page.component').then((m) => m.MovementsPageComponent),
+      },
+      {
+        path: 'stock/counts',
+        title: 'Conteos de inventario | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: WAREHOUSE},
+        loadComponent: () =>
+          import('./features/inventory/count-list-page.component').then((m) => m.CountListPageComponent),
+      },
+      {
+        path: 'stock/counts/:id',
+        title: 'Conteo | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: WAREHOUSE},
+        loadComponent: () =>
+          import('./features/inventory/count-detail-page.component').then((m) => m.CountDetailPageComponent),
+      },
+      {
+        path: 'returns',
+        title: 'Devoluciones | BuildShield',
+        loadComponent: () =>
+          import('./features/returns/return-list-page.component').then((m) => m.ReturnListPageComponent),
+      },
+      {
+        path: 'returns/new',
+        title: 'Saldos de la obra | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: SITE_OR_ADMIN},
+        loadComponent: () =>
+          import('./features/returns/return-create-page.component').then((m) => m.ReturnCreatePageComponent),
+      },
+      {
+        path: 'returns/:id',
+        title: 'Devolución | BuildShield',
+        loadComponent: () =>
+          import('./features/returns/return-detail-page.component').then((m) => m.ReturnDetailPageComponent),
+      },
+      {
+        path: 'reports',
+        title: 'Conciliación | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: ALL},
+        loadComponent: () =>
+          import('./features/reports/reconciliation-report-page.component').then(
+            (m) => m.ReconciliationReportPageComponent,
+          ),
+      },
+      {
+        path: 'suscripcion',
+        title: 'Suscripción | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: ADMIN},
+        loadComponent: () =>
+          import('./features/subscription/subscription-page.component').then((m) => m.SubscriptionPageComponent),
+      },
+      {
+        path: 'suscripcion/planes',
+        title: 'Planes | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: ADMIN},
+        loadComponent: () =>
+          import('./features/subscription/plans-page.component').then((m) => m.PlansPageComponent),
+      },
+      {
+        // Destino de PAYMENTS_SIMULATED_CHECKOUT_URL de subscription-service (modo demostración).
+        path: 'suscripcion/pago-simulado',
+        title: 'Pago simulado | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: ADMIN},
+        loadComponent: () =>
+          import('./features/subscription/simulated-payment-page.component').then(
+            (m) => m.SimulatedPaymentPageComponent,
+          ),
       },
       {
         path: 'orders',
@@ -210,6 +292,16 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./features/discrepancies/discrepancy-detail-page.component').then(
             (m) => m.DiscrepancyDetailPageComponent,
+          ),
+      },
+      {
+        path: 'notifications/recipients',
+        title: 'Destinatarios de avisos | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: ADMIN},
+        loadComponent: () =>
+          import('./features/notifications/recipient-settings-page.component').then(
+            (m) => m.RecipientSettingsPageComponent,
           ),
       },
       {

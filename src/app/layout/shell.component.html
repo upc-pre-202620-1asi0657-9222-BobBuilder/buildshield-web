@@ -70,6 +70,42 @@
       <span aria-hidden="true">Notificaciones</span>
     </a>
 
+    @if (inTrial() && subscription()) {
+      <a
+        class="plan-chip"
+        [class.plan-chip-warn]="trialEndingSoon()"
+        [routerLink]="isAdmin() ? '/suscripcion' : null"
+        (click)="menuOpen.set(false)"
+        data-testid="trial-indicator"
+      >
+        <app-icon name="clock" />
+        <span>
+          <span class="plan-chip-title">Prueba gratuita</span>
+          <span class="plan-chip-days">{{ daysLeft() }}</span>
+        </span>
+      </a>
+    } @else if (readOnly()) {
+      <a
+        class="plan-chip plan-chip-warn"
+        [routerLink]="isAdmin() ? '/suscripcion/planes' : null"
+        (click)="menuOpen.set(false)"
+      >
+        <app-icon name="lock" />
+        <span>
+          <span class="plan-chip-title">Solo lectura</span>
+          <span class="plan-chip-days">Suscripción vencida</span>
+        </span>
+      </a>
+    } @else if (subscription()) {
+      <p class="plan-chip plan-chip-plain">
+        <app-icon name="card" />
+        <span>
+          <span class="plan-chip-title">Plan {{ subscription()?.planName }}</span>
+          <span class="plan-chip-days">{{ subscription()?.billingPeriodLabel ?? subscription()?.statusLabel }}</span>
+        </span>
+      </p>
+    }
+
     <div class="who">
       <span class="role-label">Sesión como</span>
       <span class="role">{{ roleLabel() }}</span>
@@ -85,6 +121,32 @@
       <p class="sim-banner no-print" role="status">
         Modo simulado: despachos y recepciones se guardan en este navegador.
       </p>
+    }
+    @if (readOnly()) {
+      <div class="account-strip account-strip-bad no-print" role="alert" data-testid="read-only-banner">
+        <app-icon name="lock" />
+        <p>
+          <strong>Cuenta en solo lectura.</strong>
+          La suscripción venció: puedes consultar todo, pero no registrar cambios hasta pagar un plan.
+          @if (!isAdmin()) {
+            Pide al administrador que renueve la suscripción.
+          }
+        </p>
+        @if (isAdmin()) {
+          <a class="btn btn-primary" routerLink="/suscripcion/planes">Elegir plan y pagar</a>
+        }
+      </div>
+    } @else if (trialEndingSoon()) {
+      <div class="account-strip account-strip-warn no-print" role="status" data-testid="trial-warning">
+        <app-icon name="clock" />
+        <p>
+          <strong>La prueba gratuita termina pronto: {{ daysLeft().toLowerCase() }}.</strong>
+          Al terminar, la cuenta queda en solo lectura hasta pagar un plan.
+        </p>
+        @if (isAdmin()) {
+          <a class="btn" routerLink="/suscripcion/planes">Ver planes</a>
+        }
+      </div>
     }
     <main id="contenido" tabindex="-1">
       <router-outlet />
