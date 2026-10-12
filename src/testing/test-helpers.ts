@@ -1,6 +1,7 @@
 import {Environment} from '../environments/environment.model';
 import {TokenResponse} from '../app/core/models/auth';
 import {Role} from '../app/core/models/role';
+import {Subscription} from '../app/core/models/subscription';
 
 /** Entorno de pruebas: reintentos rápidos y deterministas. */
 export const TEST_ENV: Environment = {
@@ -33,6 +34,31 @@ export function fakeTokens(
     refreshToken: 'refresh-1',
     refreshTokenExpiresAt: new Date(now + 7 * 24 * 3600_000).toISOString(),
     tokenType: 'Bearer',
+    ...overrides,
+  };
+}
+
+/** Suscripción de ejemplo: prueba gratuita de 14 días recién iniciada. */
+export function fakeSubscription(overrides: Partial<Subscription> = {}): Subscription {
+  return {
+    id: 'sub-1',
+    organizationId: 'org-1',
+    plan: 'FREE',
+    planName: 'Free',
+    maxActiveWorksites: null,
+    status: 'TRIAL',
+    statusLabel: 'En prueba gratuita',
+    billingPeriod: null,
+    billingPeriodLabel: null,
+    startedAt: '2026-10-11T15:00:00Z',
+    currentPeriodStart: '2026-10-11T15:00:00Z',
+    validUntil: '2026-10-25T15:00:00Z',
+    nextBillingAt: null,
+    pendingBillingPeriod: null,
+    pendingChangeAt: null,
+    paymentProvider: null,
+    daysRemaining: 14,
+    readOnly: false,
     ...overrides,
   };
 }

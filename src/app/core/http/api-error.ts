@@ -44,12 +44,46 @@ const CODE_MESSAGES: Readonly<Record<string, string>> = {
   SKU_ALREADY_REGISTERED: 'Ese SKU ya existe en la organización.',
   INVALID_WASTE_TOLERANCE: 'La tolerancia de merma debe estar entre 0 y 100.',
   INVALID_DATE_RANGE: 'La fecha de fin no puede ser anterior a la de inicio.',
+  // Sprint 4: suscripción y pagos.
+  SUBSCRIPTION_READ_ONLY:
+    'La cuenta está en solo lectura porque venció la suscripción. Puedes consultar todo, pero no registrar cambios hasta pagar un plan.',
+  WORKSITE_LIMIT_REACHED:
+    'El plan Plus permite hasta 5 obras activas. Pasa al plan Pro para registrar o reactivar más obras.',
+  SUBSCRIPTION_ALREADY_ACTIVE: 'La organización ya tiene un plan pagado vigente.',
+  PLAN_NOT_PAYABLE: 'Ese plan no se puede pagar: elige Plus o Pro.',
+  PAYMENT_GATEWAY_UNAVAILABLE: 'La pasarela de pagos no responde. Inténtalo en unos minutos.',
+  PAYMENT_SIMULATION_DISABLED: 'El pago simulado no está habilitado en este entorno.',
+  SUBSCRIPTION_NOT_ACTIVE: 'El cambio de modalidad requiere un plan pagado vigente.',
+  SUBSCRIPTION_NOT_FOUND: 'La suscripción todavía se está creando. Espera unos segundos y recarga.',
+  CHECKOUT_NOT_FOUND: 'La sesión de pago no existe o ya venció. Vuelve a elegir el plan.',
+  // Sprint 4: inventario, conteos y devoluciones.
+  INITIAL_STOCK_ALREADY_REGISTERED:
+    'Ese material ya tiene inventario inicial en el almacén. Regístralo como reposición.',
+  COUNT_ALREADY_OPEN: 'El almacén ya tiene un conteo en curso. Termínalo o anúlalo antes de empezar otro.',
+  COUNT_MODIFIED: 'Otro usuario modificó este conteo. Recarga e inténtalo de nuevo.',
+  COUNT_NOT_REVIEWED: 'Revisa las diferencias antes de validar el ajuste.',
+  RETURN_EXCEEDS_BALANCE: 'La cantidad supera el saldo que la obra puede devolver.',
+  ORIGIN_WAREHOUSE_REQUIRED: 'El material llegó de varios almacenes: elige a cuál se devuelve.',
+  NOT_SUPPLIED_BY_WAREHOUSE: 'Ese almacén no despachó el material a la obra.',
+  ORIGIN_WAREHOUSE_UNKNOWN: 'No hay registro del almacén que despachó el material a la obra.',
+  NO_COMMON_ORIGIN_WAREHOUSE:
+    'Los materiales vienen de almacenes distintos. Registra una devolución por almacén.',
+  RETURN_MODIFIED: 'Otro usuario modificó esta devolución. Recarga e inténtalo de nuevo.',
+  RETURN_FORBIDDEN: 'Tu rol no puede realizar ese paso de la devolución.',
+  // Sprint 4: reportes y destinatarios.
+  REPORT_SCOPE_FORBIDDEN: 'Solo puedes consultar el reporte de tus obras o almacenes asignados.',
+  INVALID_PERIOD: 'La fecha de inicio no puede ser posterior a la de fin.',
+  UNSUPPORTED_FORMAT: 'Formato de exportación no soportado.',
+  UNKNOWN_RECIPIENT: 'Uno de los usuarios elegidos no existe o está desactivado.',
+  RECIPIENT_NOT_ASSIGNED: 'Un encargado de obra elegido no está asignado a esta obra.',
+  TOO_MANY_RECIPIENTS: 'Se pueden elegir hasta 50 destinatarios por aviso.',
 };
 
 /** Mensajes genéricos por código HTTP cuando el backend no envía uno propio. */
 const STATUS_MESSAGES: Readonly<Record<number, string>> = {
   400: 'Revisa los datos ingresados.',
   401: 'Tu sesión venció. Vuelve a iniciar sesión.',
+  402: 'La cuenta está en solo lectura hasta pagar un plan.',
   403: 'No tienes permiso para realizar esta acción.',
   404: 'No se encontró el recurso solicitado.',
   409: 'La operación entra en conflicto con el estado actual. Recarga e inténtalo de nuevo.',
