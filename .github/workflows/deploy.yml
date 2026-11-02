@@ -1,0 +1,47 @@
+name: CI y despliegue
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npx ng build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: dist/buildshield-web/browser
+
+  deploy:
+    # Sin AWS_ROLE_ARN (infra/scripts/set-github-variables.sh en buildshield-platform) solo se compila.
+    if: github.event_name == 'push' && vars.AWS_ROLE_ARN != ''
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: web
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Publicar en S3 e invalidar CloudFront
+        run: |
+          aws s3 sync web "s3://${{ vars.WEB_BUCKET }}" --delete
+          aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths '/*'
