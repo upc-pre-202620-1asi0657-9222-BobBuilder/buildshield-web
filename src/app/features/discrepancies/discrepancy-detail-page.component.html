@@ -133,7 +133,7 @@
       @if (actions().respond) {
         <div class="field">
           <label for="responseText">Respuesta del almacén</label>
-          <textarea id="responseText" rows="3" maxlength="1000" [(ngModel)]="responseText"></textarea>
+          <textarea id="responseText" rows="3" maxlength="500" [(ngModel)]="responseText"></textarea>
           <span class="hint">Explica qué pasó y qué se hará, por ejemplo, «Se repone en el próximo despacho».</span>
         </div>
         <div class="form-actions">
@@ -156,7 +156,7 @@
         @if (escalating()) {
           <div class="field escalate-panel">
             <label for="escalateReason">Por qué no aceptas la respuesta</label>
-            <textarea id="escalateReason" rows="2" maxlength="1000" [(ngModel)]="escalateReason"></textarea>
+            <textarea id="escalateReason" rows="2" maxlength="500" [(ngModel)]="escalateReason"></textarea>
           </div>
           <div class="form-actions">
             <button class="btn btn-danger escalate" type="button" (click)="escalate()" [disabled]="busy()">
@@ -168,7 +168,7 @@
       @if (actions().resolve) {
         <div class="field">
           <label for="decision">Decisión final</label>
-          <textarea id="decision" rows="3" maxlength="1000" [(ngModel)]="decision"></textarea>
+          <textarea id="decision" rows="3" maxlength="500" [(ngModel)]="decision"></textarea>
           <span class="hint">Queda registrada en el historial de custodia y cierra la discrepancia.</span>
         </div>
         <div class="form-actions">
