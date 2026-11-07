@@ -58,6 +58,13 @@ export interface Order {
   lines: OrderLine[];
 }
 
+/** US19: corrección de un pedido Registrado; las líneas reemplazan a las anteriores. */
+export interface EditOrderRequest {
+  notes?: string;
+  requiredDate: string;
+  lines: Array<{materialId: string; quantity: number}>;
+}
+
 export interface PlaceOrderRequest {
   worksiteId: string;
   warehouseId: string;

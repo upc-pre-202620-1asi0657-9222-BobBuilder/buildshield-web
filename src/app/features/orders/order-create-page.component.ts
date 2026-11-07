@@ -1,4 +1,4 @@
-import {Component, OnInit, inject, signal} from '@angular/core';
+import {Component, OnInit, inject, input, signal} from '@angular/core';
 import {FormBuilder, ReactiveFormsModule, Validators} from '@angular/forms';
 import {Router, RouterLink} from '@angular/router';
 import {forkJoin} from 'rxjs';
@@ -11,7 +11,7 @@ import {generateUuid} from '../../core/util/uuid';
 import {IconComponent} from '../../shared/icon.component';
 import {todayIso} from '../../shared/validators';
 
-/** T19: el encargado de obra pide materiales a un almacén. */
+/** T19: el encargado de obra pide materiales a un almacén. US19: con :id, corrige un pedido Registrado. */
 @Component({
   selector: 'app-order-create-page',
   standalone: true,
@@ -48,6 +48,9 @@ import {todayIso} from '../../shared/validators';
   `,
 })
 export class OrderCreatePageComponent implements OnInit {
+  /** Parámetro :id de la ruta orders/:id/edit; vacío al crear. */
+  readonly id = input<string>();
+
   private readonly ordersApi = inject(OrdersApiService);
   private readonly orgApi = inject(OrganizationApiService);
   private readonly router = inject(Router);
@@ -59,6 +62,7 @@ export class OrderCreatePageComponent implements OnInit {
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly minDate = todayIso();
+  protected readonly editing = signal(false);
 
   /** Se reusa si el usuario reintenta el mismo pedido tras un error. */
   private idempotencyKey = generateUuid();
@@ -87,6 +91,10 @@ export class OrderCreatePageComponent implements OnInit {
         this.materials.set(materials.filter((m) => m.active));
         if (worksites.length === 1) {
           this.form.controls.worksiteId.setValue(worksites[0].id);
+        }
+        const id = this.id();
+        if (id) {
+          this.loadForEdit(id);
         }
       },
       error: (err: unknown) => this.error.set(toApiError(err).message),
@@ -127,18 +135,21 @@ export class OrderCreatePageComponent implements OnInit {
       .join('. ');
     this.saving.set(true);
     this.error.set(null);
-    this.ordersApi
-      .place(
-        {
-          worksiteId: value.worksiteId,
-          warehouseId: value.warehouseId,
-          requiredDate: value.requiredDate,
-          notes,
-          lines: value.lines.map((l) => ({materialId: l.materialId, quantity: Number(l.quantity)})),
-        },
-        this.idempotencyKey,
-      )
-      .subscribe({
+    const lines = value.lines.map((l) => ({materialId: l.materialId, quantity: Number(l.quantity)}));
+    const id = this.id();
+    const request$ = id
+      ? this.ordersApi.update(id, {requiredDate: value.requiredDate, notes, lines}, this.idempotencyKey)
+      : this.ordersApi.place(
+          {
+            worksiteId: value.worksiteId,
+            warehouseId: value.warehouseId,
+            requiredDate: value.requiredDate,
+            notes,
+            lines,
+          },
+          this.idempotencyKey,
+        );
+    request$.subscribe({
         next: (order) => void this.router.navigate(['/orders', order.id]),
         error: (err: unknown) => {
           const apiError = toApiError(err);
@@ -151,10 +162,37 @@ export class OrderCreatePageComponent implements OnInit {
       });
   }
 
-  private newLine() {
+  /** US19: carga el pedido; obra y almacén no cambian al editar. */
+  private loadForEdit(id: string): void {
+    this.ordersApi.get(id).subscribe({
+      next: (order) => {
+        if (order.status !== 'REGISTERED') {
+          this.error.set('Este pedido ya pasó al almacén y no se puede editar.');
+          this.form.disable();
+          return;
+        }
+        this.editing.set(true);
+        this.lines.clear();
+        order.lines.forEach((line) => this.lines.push(this.newLine(line.materialId, line.requested)));
+        this.form.patchValue({
+          worksiteId: order.worksiteId,
+          warehouseId: order.warehouseId,
+          requiredDate: order.requiredDate ?? todayIso(),
+          // La fecha ya va en su propio campo: se quita el prefijo que agrega este formulario.
+          notes: (order.notes ?? '').replace(/^Fecha requerida: \d{4}-\d{2}-\d{2}\.?\s*/, ''),
+        });
+        this.form.controls.worksiteId.disable();
+        this.form.controls.warehouseId.disable();
+        this.idempotencyKey = generateUuid();
+      },
+      error: (err: unknown) => this.error.set(toApiError(err).message),
+    });
+  }
+
+  private newLine(materialId = '', quantity = 1) {
     return this.fb.group({
-      materialId: ['', Validators.required],
-      quantity: [1, [Validators.required, Validators.min(0.001)]],
+      materialId: [materialId, Validators.required],
+      quantity: [quantity, [Validators.required, Validators.min(0.001)]],
     });
   }
 }

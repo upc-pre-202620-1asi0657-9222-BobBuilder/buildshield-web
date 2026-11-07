@@ -63,6 +63,10 @@ export class OrderDetailPageComponent implements OnInit {
       this.auth.hasAnyRole(['ADMINISTRATOR', 'WAREHOUSE_MANAGER']) &&
       this.order()?.status === 'REGISTERED',
   );
+  /** US19: el encargado de obra corrige su pedido mientras el almacén no lo aprueba. */
+  protected readonly canEdit = computed(
+    () => this.auth.hasAnyRole(['SITE_MANAGER']) && this.order()?.status === 'REGISTERED',
+  );
   /** Solo el almacén y el administrador abren el detalle de un despacho. */
   protected readonly isWarehouse = computed(() =>
     this.auth.hasAnyRole(['ADMINISTRATOR', 'WAREHOUSE_MANAGER']),

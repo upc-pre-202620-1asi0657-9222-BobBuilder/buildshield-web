@@ -4,7 +4,7 @@ import {Observable} from 'rxjs';
 
 import {APP_ENV} from '../config/app-env';
 import {IDEMPOTENCY_HEADER} from '../http/idempotency.interceptor';
-import {Order, PlaceOrderRequest} from '../models/order';
+import {EditOrderRequest, Order, PlaceOrderRequest} from '../models/order';
 
 function keyHeaders(idempotencyKey?: string): HttpHeaders | undefined {
   return idempotencyKey ? new HttpHeaders({[IDEMPOTENCY_HEADER]: idempotencyKey}) : undefined;
@@ -30,6 +30,11 @@ export class OrdersApiService {
 
   place(request: PlaceOrderRequest, idempotencyKey?: string): Observable<Order> {
     return this.http.post<Order>(this.base, request, {headers: keyHeaders(idempotencyKey)});
+  }
+
+  /** US19: edita un pedido mientras sigue Registrado. */
+  update(id: string, request: EditOrderRequest, idempotencyKey?: string): Observable<Order> {
+    return this.http.put<Order>(`${this.base}/${id}`, request, {headers: keyHeaders(idempotencyKey)});
   }
 
   approve(id: string, idempotencyKey?: string): Observable<Order> {

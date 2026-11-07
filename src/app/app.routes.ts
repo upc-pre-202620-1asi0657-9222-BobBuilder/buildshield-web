@@ -197,6 +197,16 @@ export const routes: Routes = [
           ),
       },
       {
+        path: 'orders/:id/edit',
+        title: 'Editar pedido | BuildShield',
+        canActivate: [roleGuard],
+        data: {roles: SITE},
+        loadComponent: () =>
+          import('./features/orders/order-create-page.component').then(
+            (m) => m.OrderCreatePageComponent,
+          ),
+      },
+      {
         path: 'orders/:id',
         title: 'Detalle del pedido | BuildShield',
         loadComponent: () =>

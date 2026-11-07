@@ -1,6 +1,6 @@
 <section class="page">
   <div class="page-header">
-    <h1>Nuevo pedido</h1>
+    <h1>{{ editing() ? 'Editar pedido' : 'Nuevo pedido' }}</h1>
     <div class="actions">
       <a class="btn btn-ghost" routerLink="/orders">
         <app-icon name="back" />
@@ -117,7 +117,7 @@
     <div class="form-actions">
       <button type="submit" class="btn btn-primary" [disabled]="saving()">
         <app-icon name="check" />
-        {{ saving() ? 'Enviando pedido…' : 'Enviar pedido al almacén' }}
+        {{ saving() ? 'Guardando…' : editing() ? 'Guardar cambios' : 'Enviar pedido al almacén' }}
       </button>
     </div>
   </form>
