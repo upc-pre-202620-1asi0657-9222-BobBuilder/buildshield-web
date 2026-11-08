@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="BuildShield">
+  <path d="M32 4.6 L55.5 12.1 V30 C55.5 44.6 45.7 54.5 32 59.4 C18.3 54.5 8.5 44.6 8.5 30 V12.1 Z" fill="none" stroke="#ECEEEA" stroke-width="3" stroke-linejoin="round"/>
+  <rect x="17" y="19" width="30" height="7" rx="1.5" fill="#F5B800"/>
+  <rect x="17" y="29.5" width="30" height="7" rx="1.5" fill="#ECEEEA"/>
+  <rect x="17" y="40" width="23" height="7" rx="1.5" fill="#ECEEEA"/>
+</svg>

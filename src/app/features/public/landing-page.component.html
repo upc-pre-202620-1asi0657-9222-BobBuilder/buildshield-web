@@ -1,0 +1,266 @@
+<app-public-header />
+
+<main id="contenido" tabindex="-1">
+  <!-- Portada ----------------------------------------------------------- -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="kicker">Trazabilidad de materiales entre almacén y obra</p>
+        <h1 id="hero-title">Lo que sale del almacén, llega a la obra. Y si no llega, se sabe.</h1>
+        <p class="hero-lead">
+          BuildShield compara cada despacho contra lo que se recibe en obra, calcula la merma por
+          material y la evalúa contra la tolerancia que definió tu empresa. Las diferencias quedan
+          registradas como discrepancias, con evidencia y responsable.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-signal btn-lg" routerLink="/sign-up" data-cta="trial">
+            Empezar prueba gratuita
+          </a>
+          <a class="btn btn-outline-light btn-lg" routerLink="/" fragment="planes">Ver planes</a>
+        </div>
+        <p class="hero-note">
+          {{ trialDays() }} días con todas las funciones. Al terminar eliges un plan.
+        </p>
+      </div>
+
+      <figure class="sample" aria-labelledby="sample-caption">
+        <div class="sample-head">
+          <span class="sample-code">MAN-0142</span>
+          <span class="badge badge-bad">1 fuera de tolerancia</span>
+        </div>
+        <ul class="sample-lines list-plain">
+          <li class="sample-line is-out">
+            <div class="sample-material">
+              <strong>Cemento Portland tipo I</strong>
+              <span>Despachado 120 bolsas, recibido 114</span>
+            </div>
+            <div class="sample-readout">
+              <span class="pct">5,0 %</span>
+              <span class="pct-label">de merma, tolerancia 2 %</span>
+            </div>
+            <div class="track" aria-hidden="true">
+              <span class="allowed" style="width: 2%"></span>
+              <span class="tol" style="left: 98%"></span>
+              <span class="fill" style="width: 95%"></span>
+            </div>
+          </li>
+          <li class="sample-line is-ok">
+            <div class="sample-material">
+              <strong>Fierro corrugado 1/2"</strong>
+              <span>Despachado 400 varillas, recibido 398</span>
+            </div>
+            <div class="sample-readout">
+              <span class="pct">0,5 %</span>
+              <span class="pct-label">de merma, tolerancia 1 %</span>
+            </div>
+            <div class="track" aria-hidden="true">
+              <span class="allowed" style="width: 1%"></span>
+              <span class="tol" style="left: 99%"></span>
+              <span class="fill" style="width: 99.5%"></span>
+            </div>
+          </li>
+        </ul>
+        <figcaption id="sample-caption">
+          Ejemplo de conciliación de un despacho: la barra es lo recibido sobre lo despachado y la
+          línea marca la tolerancia.
+        </figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Problema ------------------------------------------------------------ -->
+  <section id="problema" class="band" aria-labelledby="problema-title">
+    <div class="wrap">
+      <p class="kicker-dark">El problema</p>
+      <h2 id="problema-title">El material se pierde en el camino y nadie puede decir dónde</h2>
+      <p class="section-lead">
+        En las constructoras, el almacén despacha y la obra recibe, pero casi nunca se concilia una
+        cosa contra la otra. La pérdida se descubre al cerrar el mes, cuando ya no hay forma de
+        reconstruir qué pasó.
+      </p>
+      <ul class="cards-3 list-plain">
+        <li class="card">
+          <h3>Despachos sin respaldo</h3>
+          <p>
+            Guías en papel o mensajes sueltos. No queda un registro único de qué material salió, en
+            qué cantidad, con qué peso ni hacia qué obra.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Recepción sin comparar</h3>
+          <p>
+            En obra se firma la llegada sin contar contra lo despachado. Una diferencia de pocas
+            unidades por viaje pasa sin que nadie la note.
+          </p>
+        </li>
+        <li class="card">
+          <h3>Merma que se ve tarde</h3>
+          <p>
+            Sin conciliación por despacho no se sabe si la merma es normal o excesiva, ni en qué
+            tramo ocurrió, ni quién debía responder por ella.
+          </p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Solución ------------------------------------------------------------ -->
+  <section id="solucion" class="band band-surface" aria-labelledby="solucion-title">
+    <div class="wrap">
+      <p class="kicker-dark">La solución</p>
+      <h2 id="solucion-title">Cada despacho se concilia contra lo recibido</h2>
+      <p class="section-lead">
+        BuildShield sigue el recorrido real del material. En cada paso queda registrado quién hizo
+        qué y cuándo.
+      </p>
+
+      <ol class="journey list-plain">
+        <li class="journey-step">
+          <span class="step-num" aria-hidden="true">1</span>
+          <div>
+            <h3>Preparado</h3>
+            <p>
+              El encargado de almacén atiende el pedido de la obra: registra los materiales por SKU,
+              las cantidades, el pesaje de salida y el transportista. El sistema genera el manifiesto.
+            </p>
+          </div>
+        </li>
+        <li class="journey-step">
+          <span class="step-num" aria-hidden="true">2</span>
+          <div>
+            <h3>En tránsito</h3>
+            <p>
+              El despacho aparece en la lista de despachos en tránsito de la obra de destino, con su
+              historial de custodia e incidencias del camino.
+            </p>
+          </div>
+        </li>
+        <li class="journey-step">
+          <span class="step-num" aria-hidden="true">3</span>
+          <div>
+            <h3>Recibido</h3>
+            <p>
+              El encargado de obra registra lo que llegó y el pesaje de llegada. BuildShield calcula
+              la merma de cada material y la evalúa contra la tolerancia.
+            </p>
+          </div>
+        </li>
+      </ol>
+
+      <ul class="features list-plain">
+        <li>
+          <h3>Conciliación y merma</h3>
+          <p>Despachado contra recibido, material por material, con la tolerancia a la vista.</p>
+        </li>
+        <li>
+          <h3>Discrepancias</h3>
+          <p>Lo que sale de tolerancia abre una discrepancia con fotos de evidencia y su resolución.</p>
+        </li>
+        <li>
+          <h3>Trazabilidad y auditoría</h3>
+          <p>Historial de custodia de cada despacho y un registro de auditoría que no se edita.</p>
+        </li>
+        <li>
+          <h3>Inventario por almacén y obra</h3>
+          <p>El stock se reserva al aprobar el pedido y se mueve con cada despacho y recepción.</p>
+        </li>
+        <li>
+          <h3>Tres roles claros</h3>
+          <p>Administrador, encargado de almacén y encargado de obra. Cada uno ve lo suyo.</p>
+        </li>
+        <li>
+          <h3>Acceso rápido por código</h3>
+          <p>El código del manifiesto abre la recepción al instante. La lista de despachos sigue disponible.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Planes -------------------------------------------------------------- -->
+  <section id="planes" class="band" aria-labelledby="planes-title">
+    <div class="wrap">
+      <p class="kicker-dark">Planes</p>
+      <h2 id="planes-title">Pagas según tus obras activas</h2>
+      <p class="section-lead">
+        Todos los planes tienen las mismas funciones. Solo cambia cuántas obras activas puedes
+        gestionar a la vez. Puedes pagar mes a mes o por año con descuento.
+      </p>
+
+      @if (catalog(); as current) {
+        <ul class="plans list-plain" [attr.data-source]="current.source">
+          @for (view of plans(); track view.plan.code) {
+            <li class="plan" [class.plan-featured]="view.plan.code === 'PLUS'" [attr.data-plan]="view.plan.code">
+              <h3 class="plan-name">{{ view.plan.name }}</h3>
+              <p class="plan-worksites">{{ view.worksites }}</p>
+              <p class="plan-price">
+                <span class="amount">{{ view.monthly }}</span>
+                @if (!view.plan.trialOnly) {
+                  <span class="per"> al mes</span>
+                }
+              </p>
+              <p class="plan-annual">{{ view.annual }}</p>
+              @if (view.savings) {
+                <p class="plan-savings"><span class="badge badge-ok">{{ view.savings }}</span></p>
+              }
+              <a class="btn btn-block" routerLink="/sign-up" [attr.data-cta]="'plan-' + view.plan.code">
+                {{ view.cta }}
+              </a>
+            </li>
+          }
+        </ul>
+        @if (current.source === 'fallback') {
+          <p class="plans-ref muted">Precios de referencia en soles. El precio final se confirma al contratar.</p>
+        }
+      } @else {
+        <p class="loading" role="status">Cargando planes</p>
+      }
+
+      <ul class="plan-notes list-plain">
+        <li>
+          Al terminar la prueba gratuita, la cuenta queda en solo lectura: puedes consultar todo lo
+          registrado, pero no registrar nada nuevo hasta elegir un plan.
+        </li>
+        <li>
+          Los pagos los procesa Stripe. BuildShield no recibe ni guarda los datos de tu tarjeta.
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Nosotros ------------------------------------------------------------ -->
+  <section id="nosotros" class="band band-surface" aria-labelledby="nosotros-title">
+    <div class="wrap">
+      <p class="kicker-dark">Nosotros</p>
+      <h2 id="nosotros-title">BobBuilder</h2>
+      <p class="section-lead">
+        Somos BobBuilder, una startup de seis estudiantes de Ingeniería de Software de la Universidad
+        Peruana de Ciencias Aplicadas. Creamos BuildShield para que las constructoras sepan, despacho
+        por despacho, qué material llegó a la obra y qué se perdió en el camino.
+      </p>
+      <ul class="team list-plain">
+        @for (member of team; track member.name) {
+          <li class="member">
+            <span class="avatar" aria-hidden="true">{{ member.initials }}</span>
+            <span class="member-text">
+              <span class="member-name">{{ member.name }}</span>
+              <span class="member-career">{{ career }}</span>
+            </span>
+          </li>
+        }
+      </ul>
+    </div>
+  </section>
+
+  <!-- Cierre -------------------------------------------------------------- -->
+  <section class="closing" aria-labelledby="closing-title">
+    <div class="wrap closing-inner">
+      <h2 id="closing-title">Concilia tu próximo despacho</h2>
+      <p>
+        Registra tu organización y prueba BuildShield {{ trialDays() }} días con todas las funciones.
+      </p>
+      <a class="btn btn-signal btn-lg" routerLink="/sign-up" data-cta="trial-closing">Registrar organización</a>
+    </div>
+  </section>
+</main>
+
+<app-public-footer />

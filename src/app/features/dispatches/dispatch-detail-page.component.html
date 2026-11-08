@@ -1,0 +1,216 @@
+<section class="page">
+  <div class="page-header">
+    <div>
+      <p class="eyebrow muted">Despacho</p>
+      <h1 class="code-title">{{ dispatch()?.manifestCode ?? 'Despacho' }}</h1>
+    </div>
+    <div class="actions">
+      @if (dispatch(); as d) {
+        <a class="btn btn-ghost" [routerLink]="['/dispatches', d.id, 'custody']">
+          <app-icon name="history" />
+          Ver historial de custodia
+        </a>
+        <a class="btn" [routerLink]="['/dispatches', d.id, 'manifest']" target="_blank">
+          <app-icon name="print" />
+          Ver manifiesto
+        </a>
+      }
+      <a class="btn btn-ghost" routerLink="/dispatches">
+        <app-icon name="back" />
+        Despachos
+      </a>
+    </div>
+  </div>
+
+  @if (error()) {
+    <p class="alert alert-error" role="alert">{{ error() }}</p>
+  }
+  @if (success()) {
+    <p class="alert alert-success" role="status">{{ success() }}</p>
+  }
+
+  @if (dispatch(); as d) {
+    @if (d.status === 'CANCELLED') {
+      <p class="alert alert-error cancelled-note" role="status">
+        <span>
+          <strong>Despacho anulado</strong>
+          @if (d.cancelledAt) { el {{ d.cancelledAt | date: 'dd/MM/yyyy HH:mm' }} }
+          @if (d.cancellationReason) {
+            <br />Motivo: {{ d.cancellationReason }}
+          }
+        </span>
+      </p>
+    } @else {
+      <app-dispatch-track
+        [status]="d.status"
+        [preparedAt]="d.preparedAt"
+        [departedAt]="d.departedAt"
+        [receivedAt]="d.receivedAt"
+      />
+    }
+
+    <div class="card">
+      <dl class="kv">
+        <div>
+          <dt>Estado</dt>
+          <dd><span [class]="'badge ' + badge(d.status)">{{ label(d) }}</span></dd>
+        </div>
+        <div>
+          <dt>Tipo</dt>
+          <dd>{{ typeLabels[d.type] ?? d.type }}</dd>
+        </div>
+        <div>
+          <dt>Pedido</dt>
+          <dd><a [routerLink]="['/orders', d.orderId]">{{ d.orderId.slice(0, 8) }}</a></dd>
+        </div>
+        @if (d.departedAt) {
+          <div>
+            <dt>Salida</dt>
+            <dd>{{ d.departedAt | date: 'dd/MM/yyyy HH:mm' }}</dd>
+          </div>
+        }
+      </dl>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>SKU</th><th>Material</th><th class="num">Cantidad</th></tr></thead>
+          <tbody>
+            @for (line of d.lines; track line.id) {
+              <tr>
+                <td data-label="SKU" class="code">{{ material(line.materialId)?.sku ?? '-' }}</td>
+                <td data-label="Material">{{ material(line.materialId)?.name ?? '-' }}</td>
+                <td data-label="Cantidad" class="num">
+                  {{ line.quantity | number: '1.0-3' }} {{ material(line.materialId)?.unit }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="steps">
+      <div class="card step" [class.step-done]="!!d.carrier">
+        <h2>
+          <span class="step-num" aria-hidden="true">1</span>
+          Transportista
+          @if (d.carrier) {
+            <span class="badge badge-ok">Registrado</span>
+          }
+        </h2>
+        <form [formGroup]="carrierForm" (ngSubmit)="saveCarrier()" novalidate>
+          <div class="form-grid">
+            <div class="field full">
+              <label for="carrierName">Empresa o conductor</label>
+              <input id="carrierName" formControlName="carrierName" autocomplete="organization" />
+            </div>
+            <div class="field">
+              <label for="carrierDocument">DNI, RUC o carné</label>
+              <input
+                id="carrierDocument"
+                formControlName="carrierDocument"
+                maxlength="20"
+                autocomplete="off"
+                aria-describedby="carrierDocumentError"
+              />
+              @if (carrierForm.controls.carrierDocument.touched && carrierForm.controls.carrierDocument.invalid) {
+                <span class="error" id="carrierDocumentError">De 8 a 20 letras o dígitos.</span>
+              }
+            </div>
+            <div class="field">
+              <label for="plate">Placa</label>
+              <input
+                id="plate"
+                formControlName="plate"
+                maxlength="10"
+                placeholder="ABC-123"
+                autocomplete="off"
+                spellcheck="false"
+                aria-describedby="plateError"
+              />
+              @if (carrierForm.controls.plate.touched && carrierForm.controls.plate.invalid) {
+                <span class="error" id="plateError">Placa de 5 a 10 caracteres, por ejemplo ABC-123.</span>
+              }
+            </div>
+          </div>
+          @if (preparing()) {
+            <div class="form-actions">
+              <button class="btn" type="submit" [disabled]="busy()">
+                {{ d.carrier ? 'Actualizar transportista' : 'Guardar transportista' }}
+              </button>
+            </div>
+          }
+        </form>
+      </div>
+
+      <div class="card step" [class.step-done]="!!d.departureWeighing">
+        <h2>
+          <span class="step-num" aria-hidden="true">2</span>
+          Pesaje de salida
+          @if (d.departureWeighing) {
+            <span class="badge badge-ok">Registrado</span>
+          }
+        </h2>
+        <form [formGroup]="weighingForm" (ngSubmit)="saveWeighing()" novalidate>
+          <div class="form-grid">
+            <div class="field">
+              <label for="grossKg">Peso bruto (kg)</label>
+              <input id="grossKg" type="number" inputmode="decimal" min="0" step="0.001" formControlName="grossKg" />
+            </div>
+            <div class="field">
+              <label for="tareKg">Tara (kg)</label>
+              <input id="tareKg" type="number" inputmode="decimal" min="0" step="0.001" formControlName="tareKg" />
+            </div>
+            <div class="field full">
+              <label for="ticket">Enlace a la foto del ticket de balanza</label>
+              <input id="ticket" type="url" formControlName="ticketPhotoUrl" aria-describedby="ticketHint" />
+              <span class="hint" id="ticketHint">Opcional. Sirve como evidencia si hay reclamos.</span>
+            </div>
+          </div>
+          <p class="net" aria-live="polite">
+            <span class="muted">Peso neto</span>
+            <strong>{{ netKg() | number: '1.0-3' }} kg</strong>
+          </p>
+          @if (preparing()) {
+            <div class="form-actions">
+              <button class="btn" type="submit" [disabled]="busy()">
+                {{ d.departureWeighing ? 'Actualizar pesaje' : 'Registrar pesaje' }}
+              </button>
+            </div>
+          }
+        </form>
+      </div>
+
+      @if (preparing()) {
+        <div class="card step step-go">
+          <h2><span class="step-num" aria-hidden="true">3</span> Salida</h2>
+          @if (canDepart()) {
+            <p class="muted">Todo listo. Al despachar, el encargado de obra lo verá como despacho en camino.</p>
+          } @else {
+            <p class="muted">
+              Falta
+              @if (!d.carrier) { registrar el transportista }
+              @if (!d.carrier && !d.departureWeighing) { y }
+              @if (!d.departureWeighing) { registrar el pesaje de salida }.
+            </p>
+          }
+          <button class="btn btn-primary btn-block" type="button" (click)="depart()" [disabled]="!canDepart() || busy()">
+            <app-icon name="truck" />
+            {{ busy() ? 'Despachando…' : 'Despachar' }}
+          </button>
+        </div>
+      }
+    </div>
+
+    @if (preparing()) {
+      <app-dispatch-cancel [dispatchId]="d.id" (cancelled)="onCancelled($event)" />
+    } @else if (d.status !== 'CANCELLED') {
+      <app-dispatch-incidents
+        [dispatchId]="d.id"
+        [canReport]="d.status === 'IN_TRANSIT'"
+        (reported)="onIncidentReported()"
+      />
+    }
+  } @else if (!error()) {
+    <p class="loading">Cargando despacho…</p>
+  }
+</section>
